@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local reference material (not part of the site)
+examplevideo/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Env files (none used yet, but never commit them)
+.env
+.env.*

@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shreyas — AI &amp; Full-Stack Engineer</title>
+  <meta name="description" content="Shreyas builds AI systems that live in the real world — agentic AI, RAG systems and full-stack engineering." />
+  <meta property="og:title" content="Shreyas — AI &amp; Full-Stack Engineer" />
+  <meta property="og:description" content="I build AI systems that live in the real world." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23FF4B00'/></svg>" />
+  <meta name="theme-color" content="#0e0e0c" />
+  <!-- Social share card. After deploying, replace with the absolute URL
+       (e.g. https://yourdomain.com/og.png) — some scrapers require it. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="/og.png" />
+
+  <!-- Apply the saved theme before first paint (prevents a wrong-theme
+       flash). localStorage can throw in strict privacy modes — ignore. -->
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('theme');
+      if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    } catch (e) {}
+  </script>
+
+  <!-- Type: Space Grotesk (display/body) + Space Mono (labels/meta) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/src/styles/tokens.css" />
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ======================= PRELOADER ======================= -->
+  <div class="preloader" aria-hidden="true">
+    <div class="preloader__name" data-preloader-name>SHREYAS</div>
+    <div class="preloader__counter"><span data-preloader-counter>0</span><span class="preloader__pct">%</span></div>
+  </div>
+
+  <!-- Accent wipe used for section transitions -->
+  <div class="wipe" data-wipe aria-hidden="true"></div>
+
+  <!-- Custom cursor (hidden on touch devices via JS + CSS) -->
+  <div class="cursor" data-cursor aria-hidden="true"></div>
+
+  <!-- ======================= NAV ======================= -->
+  <header class="nav" data-nav>
+    <a class="nav__logo mono" href="#hero" data-nav-link>Shreyas<sup>&reg;</sup></a>
+    <nav class="nav__links" aria-label="Primary">
+      <a class="nav__link mono" href="#work" data-nav-link>Work</a>
+      <a class="nav__link mono" href="#stack" data-nav-link>Stack</a>
+      <a class="nav__link mono" href="#journey" data-nav-link>Journey</a>
+      <a class="nav__link mono" href="#freelance" data-nav-link>Freelance</a>
+      <a class="nav__link mono" href="#contact" data-nav-link>Contact</a>
+    </nav>
+    <div class="nav__actions">
+      <button class="nav__theme" data-theme-toggle aria-label="Switch to day view">☀</button>
+      <button class="nav__burger" data-menu-toggle aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+        <span class="nav__burger-bar"></span>
+        <span class="nav__burger-bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Fullscreen menu (mobile) -->
+  <div class="menu" id="menu" data-menu aria-hidden="true">
+    <nav class="menu__links" aria-label="Menu">
+      <a class="menu__link" href="#work" data-nav-link data-menu-close>Work</a>
+      <a class="menu__link" href="#stack" data-nav-link data-menu-close>Stack</a>
+      <a class="menu__link" href="#journey" data-nav-link data-menu-close>Journey</a>
+      <a class="menu__link" href="#freelance" data-nav-link data-menu-close>Freelance</a>
+      <a class="menu__link" href="#contact" data-nav-link data-menu-close>Contact</a>
+    </nav>
+    <a class="menu__meta mono" href="mailto:shreoriginal@gmail.com">shreoriginal@gmail.com</a>
+  </div>
+
+  <main id="main">
+    <!-- ======================= HERO ======================= -->
+    <section class="hero" id="hero">
+      <div class="hero__gl" data-hero-gl aria-hidden="true"></div>
+
+      <div class="hero__inner container">
+        <h1 class="hero__statement">
+          <span class="hero__line" data-split>I'm Shreyas —</span>
+          <span class="hero__line" data-split>I build AI systems</span>
+          <span class="hero__line hero__line--dim" data-split>that live in</span>
+          <span class="hero__line hero__line--dim" data-split>the real world.</span>
+        </h1>
+      </div>
+
+      <p class="hero__aside" data-reveal>
+        Crafting agentic AI<br />&amp; digital experiences
+      </p>
+
+      <div class="hero__scroll mono" aria-hidden="true">
+        <span>Scroll</span>
+        <span class="hero__scroll-line"></span>
+      </div>
+    </section>
+
+    <!-- ======================= MARQUEE ======================= -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <div class="marquee__group">
+          <span>React</span><i>&#10022;</i>
+          <span>Three.js</span><i>&#10022;</i>
+          <span>FastAPI</span><i>&#10022;</i>
+          <span>LangGraph</span><i>&#10022;</i>
+          <span>RAG</span><i>&#10022;</i>
+          <span>Python</span><i>&#10022;</i>
+          <span>PostgreSQL</span><i>&#10022;</i>
+          <span>AWS</span><i>&#10022;</i>
+          <span>Groq</span><i>&#10022;</i>
+          <span>WebGL</span><i>&#10022;</i>
+          <span>Node.js</span><i>&#10022;</i>
+          <span>Tailwind CSS</span><i>&#10022;</i>
+          <span>Vercel</span><i>&#10022;</i>
+        </div>
+        <div class="marquee__group">
+          <span>React</span><i>&#10022;</i>
+          <span>Three.js</span><i>&#10022;</i>
+          <span>FastAPI</span><i>&#10022;</i>
+          <span>LangGraph</span><i>&#10022;</i>
+          <span>RAG</span><i>&#10022;</i>
+          <span>Python</span><i>&#10022;</i>
+          <span>PostgreSQL</span><i>&#10022;</i>
+          <span>AWS</span><i>&#10022;</i>
+          <span>Groq</span><i>&#10022;</i>
+          <span>WebGL</span><i>&#10022;</i>
+          <span>Node.js</span><i>&#10022;</i>
+          <span>Tailwind CSS</span><i>&#10022;</i>
+          <span>Vercel</span><i>&#10022;</i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= ABOUT ======================= -->
+    <section class="section about" id="about">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <h2 class="section__index mono">01 — About</h2>
+          <span class="section__rule"></span>
+        </header>
+        <div class="about__grid">
+          <p class="about__bio" data-split-lines>
+            I'm Shreyas — a full-stack AI developer focused on bringing
+            models out of research and into the real world.
+          </p>
+          <p class="about__body" data-reveal>
+            I build autonomous agentic workflows and robust RAG pipelines, then
+            integrate them into high-performance React and FastAPI products.
+            Whether architecting cloud-deployed civic-tech platforms or
+            engineering WebGL experiences like this one, the focus is the same:
+            clean, scalable software that ships. At the SRM Insider Community,
+            I bridge web development and cloud infrastructure to put powerful
+            tools into production.
+          </p>
+          <p class="about__detail mono" data-reveal>Full-Stack &amp; AI Developer · SRM Insider Community — Web + Cloud</p>
+          <ul class="about__focus" data-reveal>
+            <li><span class="about__focus-label mono">01 · AI Engineering</span><span class="about__focus-desc">Agents · RAG · Vision</span></li>
+            <li><span class="about__focus-label mono">02 · Web Development</span><span class="about__focus-desc">React · FastAPI · Three.js / WebGL</span></li>
+            <li><span class="about__focus-label mono">03 · Cloud &amp; Deployment</span><span class="about__focus-desc">AWS · Vercel · Render · PostgreSQL</span></li>
+          </ul>
+        </div>
+        <div class="stats">
+          <div class="stat" data-reveal>
+            <span class="stat__num">03</span>
+            <span class="stat__label mono">Projects shipped</span>
+          </div>
+          <div class="stat" data-reveal>
+            <span class="stat__num">02</span>
+            <span class="stat__label mono">SRM Insiders domains — Web + Cloud</span>
+          </div>
+          <div class="stat" data-reveal>
+            <span class="stat__num">10<i>+</i></span>
+            <span class="stat__label mono">Technologies in production</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= WORK ======================= -->
+    <section class="section work" id="work">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <h2 class="section__index mono">02 — Work</h2>
+          <span class="section__rule"></span>
+        </header>
+        <!-- Project rows are rendered from /src/data/projects.js -->
+        <ul class="work__list" data-work-list></ul>
+      </div>
+    </section>
+
+    <!-- ======================= EXPERTISE / STACK ======================= -->
+    <section class="section stack" id="stack">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <h2 class="section__index mono">03 — Stack</h2>
+          <span class="section__rule"></span>
+        </header>
+        <ul class="pillars">
+          <li class="pillar" data-reveal>
+            <span class="pillar__index mono">01</span>
+            <h3 class="pillar__title">AI &amp; Machine Learning</h3>
+            <ul class="pillar__items">
+              <li>LangChain</li><li>LangGraph</li><li>RAG</li><li>XGBoost</li><li>Groq Vision</li>
+            </ul>
+          </li>
+          <li class="pillar" data-reveal>
+            <span class="pillar__index mono">02</span>
+            <h3 class="pillar__title">Backend &amp; Languages</h3>
+            <ul class="pillar__items">
+              <li>Python</li><li>C</li><li>C++</li><li>Java</li><li>FastAPI</li><li>Node.js</li>
+            </ul>
+          </li>
+          <li class="pillar" data-reveal>
+            <span class="pillar__index mono">03</span>
+            <h3 class="pillar__title">Frontend</h3>
+            <ul class="pillar__items">
+              <li>React</li><li>Three.js / WebGL</li><li>Vite</li><li>Tailwind CSS</li>
+            </ul>
+          </li>
+          <li class="pillar" data-reveal>
+            <span class="pillar__index mono">04</span>
+            <h3 class="pillar__title">Cloud, Data &amp; Tooling</h3>
+            <ul class="pillar__items">
+              <li>PostgreSQL</li><li>AWS</li><li>Vercel</li><li>Render</li><li>Postman</li><li>Git</li><li>GitHub</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ======================= JOURNEY (work & education) ======================= -->
+    <section class="section journey" id="journey">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <h2 class="section__index mono">04 — Journey</h2>
+          <span class="section__rule"></span>
+        </header>
+        <div class="journey__grid">
+          <div class="journey__col">
+            <h3 class="journey__label mono" data-reveal>Professional Experience</h3>
+            <!-- Rendered from /src/data/profile.js -->
+            <ol class="timeline" data-experience-list></ol>
+          </div>
+          <div class="journey__col">
+            <h3 class="journey__label mono" data-reveal>Education</h3>
+            <ol class="timeline" data-education-list></ol>
+            <h3 class="journey__label mono journey__label--langs" data-reveal>Languages</h3>
+            <ul class="langs" data-languages-list></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= FREELANCE / SERVICES ======================= -->
+    <section class="section freelance" id="freelance">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <span class="section__index mono">05 — Freelance</span>
+          <span class="section__rule"></span>
+        </header>
+        <p class="freelance__lead" data-split-lines>
+          Open for freelance work — from a landing page to a full product,
+          designed, built and deployed. Or AI that actually ships.
+        </p>
+        <div class="services">
+          <article class="service" data-reveal>
+            <span class="service__index mono">A</span>
+            <h3 class="service__title">Websites, end to end</h3>
+            <p class="service__desc">
+              Full-fledged, deployable websites — design-forward front ends in
+              React/Vite (or vanilla&nbsp;+&nbsp;WebGL like this site), FastAPI backends
+              when you need them, live on Vercel, Render or AWS with your domain wired up.
+            </p>
+            <ul class="service__items">
+              <li>Portfolio &amp; landing pages</li>
+              <li>Web apps &amp; dashboards</li>
+              <li>3D / WebGL experiences</li>
+              <li>Deployment, domains &amp; upkeep</li>
+            </ul>
+            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=Website%20project" data-hover>Start a project ↗</a>
+          </article>
+          <article class="service" data-reveal>
+            <span class="service__index mono">B</span>
+            <h3 class="service__title">AI systems &amp; agents</h3>
+            <p class="service__desc">
+              Help building AI into real products — agentic assistants, RAG over
+              your own documents with source-grounded answers, vision pipelines
+              and LLM features integrated into the stack you already run.
+            </p>
+            <ul class="service__items">
+              <li>Agentic assistants (LangGraph)</li>
+              <li>RAG knowledge bases</li>
+              <li>AI vision &amp; automation</li>
+              <li>LLM integration into existing apps</li>
+            </ul>
+            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=AI%20project" data-hover>Start a project ↗</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= CERTIFICATIONS ======================= -->
+    <section class="section certs" id="certifications">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <h2 class="section__index mono">06 — Certifications</h2>
+          <span class="section__rule"></span>
+        </header>
+        <!-- Rendered from /src/data/profile.js -->
+        <ul class="certs__grid" data-certs-list></ul>
+      </div>
+    </section>
+
+    <!-- ======================= CONTACT ======================= -->
+    <section class="section contact" id="contact">
+      <div class="container">
+        <header class="section__head" data-reveal>
+          <span class="section__index mono">07 — Contact</span>
+          <span class="section__rule"></span>
+        </header>
+        <p class="contact__badge mono" data-reveal>
+          <span class="contact__dot" aria-hidden="true"></span>
+          Open to internships · freelance · collaborations
+        </p>
+        <h2 class="contact__title" data-split>Let's build something.</h2>
+        <p class="contact__note" data-reveal>
+          A website, an AI agent, or something in between — if it's ambitious,
+          I want to hear about it. One email is all it takes.
+        </p>
+        <div class="contact__actions" data-reveal>
+          <a class="btn btn--fill" href="mailto:shreoriginal@gmail.com?subject=Let%27s%20build%20something">shreoriginal@gmail.com</a>
+          <a class="btn" href="https://github.com/shreyascode11/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+          <a class="btn" href="https://www.linkedin.com/in/shreyas1102/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+          <a class="btn" href="https://www.instagram.com/_shreyassrivas_/" target="_blank" rel="noopener noreferrer">Instagram ↗</a>
+        </div>
+        <footer class="footer">
+          <span class="mono">© 2026 Shreyas</span>
+          <span class="mono footer__time" data-local-time>Chennai, IN</span>
+          <button class="footer__top mono" data-back-to-top data-hover>Back to top ↑</button>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <!-- Fullscreen transparent canvas for WebGL image hover distortion -->
+  <canvas class="distortion-canvas" data-distortion-canvas aria-hidden="true"></canvas>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

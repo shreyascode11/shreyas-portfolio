@@ -1,0 +1,61 @@
+/* =====================================================================
+   DESIGN TOKENS — edit the whole site's look from this one file.
+   Light "Lusion-style" theme: off-white ground, near-black type,
+   orange-red signature accent, violet as a secondary 3D/gradient color.
+   ===================================================================== */
+:root {
+  /* Color */
+  --bg: #e9e9e4;            /* warm off-white page background */
+  --surface: #dededa;       /* raised panels / cards */
+  --text: #101010;          /* near-black type */
+  --muted: #63635e;         /* secondary text */
+  --accent: #e84300;        /* orange-red — the signature. Use sparingly. */
+  --accent-bright: #ff4b00; /* brighter accent for graphics / WebGL only */
+  --accent-2: #6e56cf;      /* violet — gradients / WebGL depth */
+  --line: rgba(16, 16, 16, 0.14); /* hairline rules */
+
+  /* Type */
+  --font-display: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Space Mono', 'SFMono-Regular', Menlo, monospace;
+
+  /* Type scale (fluid) */
+  --size-statement: clamp(2.6rem, 7.5vw, 7.25rem); /* hero / CTA statements */
+  --size-h2: clamp(2.5rem, 6.5vw, 5.5rem);
+  --size-big: clamp(1.5rem, 2.8vw, 2.6rem);   /* about bio, large statements */
+  --size-body: clamp(1rem, 1.15vw, 1.125rem);
+  --size-mono: 0.8125rem;
+
+  /* Space */
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);
+  --section-pad: clamp(7rem, 16vh, 13rem);
+
+  /* Shape */
+  --radius: 16px;           /* card / thumbnail rounding */
+  --radius-pill: 999px;     /* buttons */
+
+  /* Motion — slow, confident, ease-out. Nothing bouncy. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-slow: 1.1s;
+  --dur-med: 0.8s;
+  --dur-fast: 0.4s;
+
+  /* Z layers */
+  --z-nav: 50;
+  --z-distortion: 5;
+  --z-wipe: 90;
+  --z-preloader: 100;
+  --z-cursor: 110;
+}
+
+/* =====================================================================
+   NIGHT VIEW — applied by the nav toggle (see modules/Theme.js).
+   Only the color plane changes; type, spacing and motion are shared.
+   ===================================================================== */
+:root[data-theme='dark'] {
+  --bg: #0e0e0c;            /* near-black ground */
+  --surface: #1b1b18;       /* raised panels / cards */
+  --text: #edede6;          /* warm off-white type */
+  --muted: #8a8a82;         /* secondary text */
+  --accent: #ff5c1a;        /* brighter orange for contrast on dark */
+  --line: rgba(237, 237, 230, 0.14);
+}
