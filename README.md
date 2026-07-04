@@ -7,8 +7,7 @@
 **A cinematic, WebGL-driven personal portfolio.**
 Custom GLSL shaders · buttery smooth scroll · day & night themes · zero frameworks, zero backend.
 
-<!-- Live URL — add after deploying -->
-<!-- [**View it live →**](https://your-domain.com) -->
+### [**View it live →**](https://shreyas-portfolio-virid.vercel.app/)
 
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-r170-000000?logo=threedotjs&logoColor=white)
