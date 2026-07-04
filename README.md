@@ -2,8 +2,8 @@
 
 # Shreyas — Portfolio
 
-**A cinematic, WebGL-driven personal portfolio.**
-Custom GLSL shaders · buttery smooth scroll · day & night themes · zero frameworks, zero backend.
+**A cinematic, WebGL-driven personal portfolio, built from scratch.**
+Custom GLSL shaders · smooth scroll · day & night themes · no frameworks, no backend.
 
 ### [**View it live →**](https://shreyas-portfolio-virid.vercel.app/)
 
@@ -17,104 +17,65 @@ Custom GLSL shaders · buttery smooth scroll · day & night themes · zero frame
 
 ---
 
-## ✨ Features
+## Overview
 
-- **Interactive 3D hero** — a noise-displaced sphere written in custom GLSL that reacts to cursor position and velocity, surrounded by a drifting particle field
-- **Day / night themes** — one toggle re-colors the whole site *including* the WebGL scene and generated artwork; choice persists, applied before first paint (no flash)
-- **WebGL hover distortion** — project thumbnails ripple with an RGB-split shader on hover; supports both images and looping videos (`VideoTexture`)
-- **Generated cover art** — projects without real screenshots get procedurally drawn poster-style covers (canvas), themed and cached
-- **Cinematic motion** — preloader with progress counter, per-character text reveals, accent wipe transitions, Lenis smooth scrolling, scrollspy navigation
-- **Fully data-driven content** — projects, experience, education, certifications and languages live in two plain JS files
+This is the personal portfolio of **Shreyas** — a full-stack AI developer. The site itself is part of the portfolio: every shader, animation and interaction is hand-written in vanilla JavaScript and GLSL, with no UI framework and no server. It ships as a fully static bundle.
 
-## 🛠 Tech Stack
+## Highlights
+
+- **Interactive 3D hero** — a noise-displaced sphere driven by a custom vertex/fragment shader pair. It reacts to cursor position and velocity, surrounded by a drifting particle field. Phones render the same scene on a reduced quality tier (lower geometry density, capped pixel ratio) to keep scrolling smooth.
+- **Day / night themes** — a single toggle re-colors the entire experience, *including* the WebGL scene and generated artwork. The choice persists and is applied before first paint, so there is no theme flash.
+- **WebGL hover distortion** — project thumbnails ripple with an RGB-split displacement shader on hover, supporting both static images and looping video textures.
+- **Procedural cover art** — projects without final imagery receive canvas-generated, poster-style covers (index numeral, orbit rings, gradient field), themed to match the active palette and cached per theme.
+- **Cinematic motion** — preloader with a real progress counter, per-character text reveals, accent wipe transitions between sections, Lenis-powered smooth scrolling, and scrollspy navigation.
+- **Data-driven content** — projects, experience, education, certifications and languages are plain JavaScript modules; layout, reveal animations and WebGL all derive from them.
+
+## Tech Stack
 
 | Layer | Choice |
 |---|---|
 | Build | [Vite](https://vitejs.dev) |
-| 3D / Shaders | [Three.js](https://threejs.org) + hand-written GLSL (no plugins) |
+| 3D / Shaders | [Three.js](https://threejs.org) with hand-written GLSL |
 | Animation | [GSAP](https://gsap.com) + ScrollTrigger |
 | Scrolling | [Lenis](https://lenis.darkroom.engineering) |
-| Styling | Plain CSS with design tokens (custom properties) |
-| Hosting | Any static host — no backend required |
+| Styling | Plain CSS on a design-token system (custom properties) |
+| Hosting | Vercel (fully static — works on any static host) |
 
-## 🚀 Getting Started
+## Architecture
+
+```
+src/
+├── main.js                 Boot, capability detection, data rendering,
+│                           and the single render loop (IntersectionObserver-gated)
+├── gl/
+│   ├── Renderer.js         WebGLRenderer wrapper — DPR caps, resource disposal
+│   ├── Hero.js             Displaced sphere + particle field (theme-aware)
+│   ├── ImageDistortion.js  Hover ripple over thumbnails (image & video textures)
+│   └── placeholder.js      Procedural cover generator, cached per theme
+├── shaders/                GLSL as template literals — simplex noise,
+│                           hero displacement, distortion + rounded-corner mask
+├── modules/                Preloader · SmoothScroll · Cursor · Theme ·
+│                           Menu · Nav (scrollspy) · PageTransition · Reveal
+├── data/                   projects.js · profile.js (all site content)
+└── styles/                 tokens.css (design system) · main.css
+```
+
+Notable engineering details:
+
+- **Three.js is lazy-loaded behind the preloader** — the initial bundle is ~55 KB gzipped; the 3D chunk streams in while the loading counter runs.
+- **GL scenes render only while visible.** IntersectionObservers gate the hero and thumbnail scenes; the marquee pauses offscreen.
+- **Split-text animations are screen-reader safe** — the real text remains in the accessibility tree while the animated per-character copy is `aria-hidden`.
+- **Graceful degradation at every layer**: no WebGL → static gradient; lost GPU context → fallback swap; blocked `localStorage` → ignored; `prefers-reduced-motion` → native scroll, no animation, static hero.
+
+## Running Locally
 
 ```bash
 git clone https://github.com/shreyascode11/shreyas-portfolio.git
 cd shreyas-portfolio
 npm install
-npm run dev        # → http://localhost:5173
+npm run dev        # development server → http://localhost:5173
+npm run build      # production build → dist/
 ```
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | Dev server with live reload — use this while editing |
-| `npm run build` | Production build → `dist/` |
-| `npm run preview` | Serve the built `dist/` at `localhost:4173` |
-
-## 📁 Project Structure
-
-```
-src/
-├── main.js                 Boot, capability detection, data rendering,
-│                           single render loop (IntersectionObserver-gated)
-├── gl/
-│   ├── Renderer.js         WebGLRenderer wrapper — DPR cap, disposal
-│   ├── Hero.js             Displaced sphere + particles (theme-aware)
-│   ├── ImageDistortion.js  Hover ripple over thumbnails (image & video)
-│   └── placeholder.js      Procedural cover cards, cached per theme
-├── shaders/                GLSL as template literals (noise, hero, distortion)
-├── modules/                Preloader · SmoothScroll · Cursor · Theme ·
-│                           Menu · Nav (scrollspy) · PageTransition · Reveal
-├── data/
-│   ├── projects.js         ← add a project here, everything updates
-│   └── profile.js          ← experience, education, certs, languages
-└── styles/
-    ├── tokens.css          ← every color, size and easing (both themes)
-    └── main.css            Component styles
-
-public/
-├── assets/projects/        Project thumbnails (.jpg / .mp4)
-├── assets/certs/           Certificate files (cards link to them)
-├── og.png                  Social share card (1200×630)
-└── 404.html                Custom not-found page
-```
-
-## ✏️ Customization
-
-Content and design decisions are centralized — nothing requires digging through markup or animation code.
-
-| Concern | Location | Scope |
-|---|---|---|
-| Project entries | `src/data/projects.js` | Title, description, role, tech stack, external links, media paths. New entries propagate to layout, reveals and WebGL automatically. |
-| Professional profile | `src/data/profile.js` | Experience, education, certifications (with linked credential files), languages. |
-| Design system | `src/styles/tokens.css` | Both theme palettes, type scale, spacing, radii, motion curves — every visual constant is a custom property here. |
-| Hero shader | `src/shaders/hero.js` · `src/gl/Hero.js` | Displacement amplitude, noise frequency and speed (documented constants at the top of the shader); per-theme color palettes. |
-| Hover distortion | `src/shaders/distortion.js` | Ripple density, displacement strength, chromatic-split intensity. |
-| Page copy | `index.html` | Hero statement, biography, freelance offerings, contact CTA. |
-
-### Project media
-
-Each project accepts an `image` and/or a `video` path served from `public/assets/projects/`:
-
-```js
-image: "/assets/projects/ecoscan.jpg",   // static thumbnail — 4:3, ≥1200×900 recommended
-video: "/assets/projects/ecoscan.mp4",   // looping muted preview — takes priority over image
-```
-
-Recommended video specs: 5–10 s screen capture, H.264 MP4, 720p, under ~3 MB. Until real media exists at these paths, the site renders procedurally generated, theme-aware cover art — the layout never shows a broken image.
-
-## ⚡ Performance & Accessibility
-
-- Three.js is **lazy-loaded behind the preloader** — the initial bundle is ~55 KB gzipped
-- GL scenes **only render while on screen**; marquee pauses offscreen; `devicePixelRatio` capped at 1.75
-- **`prefers-reduced-motion`** gets native scroll, no split-text animation, and a static hero
-- Real heading hierarchy, skip link, keyboard-visible focus, and split-text animations keep a **screen-reader-readable copy** of every heading
-- Graceful degradation: no WebGL / lost GPU context / blocked localStorage all fall back cleanly
-
-## 📦 Deploying
-
-`npm run build`, then host `dist/` on any static platform (Vercel · Netlify · GitHub Pages · S3+CloudFront). With Vercel, just import the repo — zero config. After deploying, point the `og:image` meta in `index.html` at your live domain.
 
 ---
 
@@ -122,6 +83,6 @@ Recommended video specs: 5–10 s screen capture, H.264 MP4, 720p, under ~3 MB. 
 
 **Shreyas** — Full-Stack & AI Developer
 
-[GitHub](https://github.com/shreyascode11/) · [LinkedIn](https://www.linkedin.com/in/shreyas1102/) · [Email](mailto:shreoriginal@gmail.com)
+[Portfolio](https://shreyas-portfolio-virid.vercel.app/) · [GitHub](https://github.com/shreyascode11/) · [LinkedIn](https://www.linkedin.com/in/shreyas1102/) · [Email](mailto:shreoriginal@gmail.com)
 
 </div>
