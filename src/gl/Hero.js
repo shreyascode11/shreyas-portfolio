@@ -19,7 +19,13 @@ export class Hero {
   constructor(container, quality = 'high') {
     this.container = container;
 
-    this.gl = new Renderer({ container, alpha: true });
+    // Mobile GPUs choke on full-screen canvases at high pixel density —
+    // the low tier renders fewer pixels (scroll stays smooth).
+    this.gl = new Renderer({
+      container,
+      alpha: true,
+      maxDpr: quality === 'high' ? 1.75 : 1.3
+    });
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 20);
@@ -56,7 +62,8 @@ export class Hero {
     });
 
     this.mesh = new THREE.Mesh(geometry, material);
-    // Slightly right of center and raised — the statement sits bottom-left
+    // Position/scale are viewport-dependent — see resize()
+    this.baseScale = 1;
     this.mesh.position.set(0.9, 0.15, 0);
     this.scene.add(this.mesh);
 
@@ -143,11 +150,12 @@ export class Hero {
   /** Intro reveal, played when the preloader exits. */
   intro() {
     gsap.to(this.uniforms.uReveal, { value: 1, duration: 1.6, ease: 'power3.out' });
-    gsap.from(this.mesh.scale, {
-      x: 0.6, y: 0.6, z: 0.6,
-      duration: 1.6,
-      ease: 'power3.out'
-    });
+    const s = this.baseScale;
+    gsap.fromTo(
+      this.mesh.scale,
+      { x: s * 0.6, y: s * 0.6, z: s * 0.6 },
+      { x: s, y: s, z: s, duration: 1.6, ease: 'power3.out' }
+    );
   }
 
   /** @param {number} time seconds since start */
@@ -178,8 +186,20 @@ export class Hero {
     this.camera.updateProjectionMatrix();
     this.gl.setSize(w, h);
 
-    // On narrow screens center the blob behind the type
-    this.mesh.position.x = w < 900 ? 0 : 0.9;
+    // Composition per viewport: desktop — large, right of center;
+    // tablet — centered; phone — smaller and raised into the upper half
+    // so it never swallows the statement at the bottom.
+    if (w < 700) {
+      this.baseScale = 0.58;
+      this.mesh.position.set(0, 1.15, 0);
+    } else if (w < 1100) {
+      this.baseScale = 0.82;
+      this.mesh.position.set(0, 0.5, 0);
+    } else {
+      this.baseScale = 1;
+      this.mesh.position.set(0.9, 0.15, 0);
+    }
+    this.mesh.scale.setScalar(this.baseScale);
   }
 
   dispose() {

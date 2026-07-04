@@ -13,15 +13,16 @@ export class Renderer {
    * @param {HTMLCanvasElement} [options.canvas] existing canvas to render into
    * @param {HTMLElement} [options.container] element to append a new canvas to
    * @param {boolean} [options.alpha=true] transparent clear
+   * @param {number} [options.maxDpr] pixel-ratio cap (lower on mobile GPUs)
    */
-  constructor({ canvas, container, alpha = true } = {}) {
+  constructor({ canvas, container, alpha = true, maxDpr = MAX_DPR } = {}) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       alpha,
       antialias: true,
       powerPreference: 'high-performance'
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
     if (alpha) this.renderer.setClearColor(0x000000, 0);
 
     if (container && !canvas) container.appendChild(this.renderer.domElement);
