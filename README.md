@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="public/og.png" alt="Shreyas — I build AI systems that live in the real world" width="100%" />
-
 # Shreyas — Portfolio
 
 **A cinematic, WebGL-driven personal portfolio.**
