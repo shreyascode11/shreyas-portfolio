@@ -84,16 +84,27 @@ public/
 
 ## ✏️ Customization
 
-| To change… | Edit… |
-|---|---|
-| Projects (name, blurb, tech, links, media) | `src/data/projects.js` |
-| Experience / education / certifications | `src/data/profile.js` |
-| Colors, typography, spacing, both theme palettes | `src/styles/tokens.css` |
-| Hero blob behavior (amplitude, speed, colors) | constants atop `src/shaders/hero.js` + palettes in `src/gl/Hero.js` |
-| Hover distortion strength / RGB split | constants atop `src/shaders/distortion.js` |
-| Copy (hero statement, bio, freelance offers) | `index.html` |
+Content and design decisions are centralized — nothing requires digging through markup or animation code.
 
-Drop real screenshots or screen-recordings into `public/assets/projects/` matching the paths in `projects.js` — until then, generated covers keep the design intact.
+| Concern | Location | Scope |
+|---|---|---|
+| Project entries | `src/data/projects.js` | Title, description, role, tech stack, external links, media paths. New entries propagate to layout, reveals and WebGL automatically. |
+| Professional profile | `src/data/profile.js` | Experience, education, certifications (with linked credential files), languages. |
+| Design system | `src/styles/tokens.css` | Both theme palettes, type scale, spacing, radii, motion curves — every visual constant is a custom property here. |
+| Hero shader | `src/shaders/hero.js` · `src/gl/Hero.js` | Displacement amplitude, noise frequency and speed (documented constants at the top of the shader); per-theme color palettes. |
+| Hover distortion | `src/shaders/distortion.js` | Ripple density, displacement strength, chromatic-split intensity. |
+| Page copy | `index.html` | Hero statement, biography, freelance offerings, contact CTA. |
+
+### Project media
+
+Each project accepts an `image` and/or a `video` path served from `public/assets/projects/`:
+
+```js
+image: "/assets/projects/ecoscan.jpg",   // static thumbnail — 4:3, ≥1200×900 recommended
+video: "/assets/projects/ecoscan.mp4",   // looping muted preview — takes priority over image
+```
+
+Recommended video specs: 5–10 s screen capture, H.264 MP4, 720p, under ~3 MB. Until real media exists at these paths, the site renders procedurally generated, theme-aware cover art — the layout never shows a broken image.
 
 ## ⚡ Performance & Accessibility
 
