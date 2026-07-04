@@ -41,11 +41,11 @@ function supportsWebGL() {
   }
 }
 
-// Full GL (hero shader + image distortion) only on non-touch, motion-OK,
-// WebGL-capable devices. Touch devices get the static hero gradient and
-// plain <img> thumbnails.
-const useHeroGL = !reducedMotion && !isTouch && supportsWebGL();
-const useDistortion = useHeroGL; // same bar for now
+// The hero scene runs everywhere WebGL exists (phones get a lighter
+// quality tier). Hover-driven extras (image distortion, custom cursor)
+// stay desktop-only since touch has no hover.
+const useHeroGL = !reducedMotion && supportsWebGL();
+const useDistortion = useHeroGL && !isTouch;
 
 // ---------------------------------------------------------------------
 // Render the Work section from data.
@@ -310,16 +310,22 @@ async function initGL() {
   ]);
   const loadingManager = new LoadingManager();
 
-  const hero = new Hero(heroContainer, 'high');
+  const hero = new Hero(heroContainer, isTouch ? 'low' : 'high');
   // Theme was applied before GL init — sync the blob's palette to it
   hero.setTheme(document.documentElement.dataset.theme || 'light');
-  const distortion = useDistortion
-    ? new ImageDistortion(
-        distortionCanvas,
-        document.querySelectorAll('.project__media'),
-        loadingManager
-      )
-    : null;
+
+  if (!useDistortion) {
+    // Plain <img> thumbnails on touch — still need placeholder fallbacks,
+    // and there are no textures to wait for.
+    installImageFallbacks();
+    return { hero, distortion: null };
+  }
+
+  const distortion = new ImageDistortion(
+    distortionCanvas,
+    document.querySelectorAll('.project__media'),
+    loadingManager
+  );
 
   // Resolve when every texture registered with the manager settles
   // (missing placeholder images resolve via onError → generated gradient).

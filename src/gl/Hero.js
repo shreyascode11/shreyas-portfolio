@@ -62,7 +62,7 @@ export class Hero {
 
     // Ambient particle field — floating dust around the object, like the
     // reference scene. Cheap: one Points object, rotated slowly.
-    const count = 380;
+    const count = quality === 'high' ? 380 : 200;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const radius = 2.5 + Math.random() * 6;
