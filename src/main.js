@@ -68,12 +68,34 @@ function renderProjects() {
         .filter(Boolean)
         .join('');
 
+      // Expandable "why & what" panel, sourced from the project's README
+      const details =
+        p.why || p.features
+          ? `
+        <div class="project__more">
+          <button class="project__more-toggle mono" aria-expanded="false">More +</button>
+          <div class="project__details">
+            <div class="project__details-inner">
+              ${p.why ? `
+                <h4 class="project__dlabel mono">Why it exists</h4>
+                <p class="project__dtext">${p.why}</p>` : ''}
+              ${p.features ? `
+                <h4 class="project__dlabel mono">What it does</h4>
+                <ul class="project__dlist">
+                  ${p.features.map((f) => `<li>${f}</li>`).join('')}
+                </ul>` : ''}
+            </div>
+          </div>
+        </div>`
+          : '';
+
       return `
         <li class="project">
           <div class="project__link">
             <span class="project__index mono">${index}</span>
             <div class="project__body">
               <h3 class="project__title">${p.name}</h3>
+              ${p.award ? `<p class="project__award mono">★ ${p.award}</p>` : ''}
               <p class="project__blurb">${p.blurb}</p>
               <p class="project__meta mono">
                 <span class="project__year">${p.year}</span>
@@ -81,6 +103,7 @@ function renderProjects() {
               </p>
               <div class="project__tags">${tags}</div>
               <div class="project__links">${links}</div>
+              ${details}
             </div>
             ${(() => {
               // Thumbnails link out (they read as clickable), lazy-load
@@ -99,6 +122,18 @@ function renderProjects() {
         </li>`;
     })
     .join('');
+
+  // Expand/collapse the "why & what" panels (pure CSS grid-rows animation;
+  // ScrollTrigger re-measures after the height settles)
+  list.addEventListener('click', (e) => {
+    const toggle = e.target.closest('.project__more-toggle');
+    if (!toggle) return;
+    const more = toggle.closest('.project__more');
+    const open = more.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? 'Less −' : 'More +';
+    setTimeout(() => ScrollTrigger.refresh(), 650);
+  });
 }
 
 // ---------------------------------------------------------------------

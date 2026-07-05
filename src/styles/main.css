@@ -519,6 +519,50 @@ html.menu-open { overflow: hidden; }
 }
 .project__links a:hover { color: var(--accent); border-color: var(--accent); }
 
+/* Award line (e.g. Best Project) — sits right under the title */
+.project__award {
+  margin-top: 0.9rem;
+  color: var(--accent);
+}
+
+/* Expandable "why & what" panel */
+.project__more { margin-top: 1.5rem; }
+.project__more-toggle {
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.15rem;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+.project__more-toggle:hover,
+.project__more.is-open .project__more-toggle {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.project__details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.6s var(--ease-out);
+}
+.project__more.is-open .project__details { grid-template-rows: 1fr; }
+.project__details-inner { overflow: hidden; }
+.project__dlabel {
+  margin-top: 1.75rem;
+  color: var(--accent);
+}
+.project__dtext {
+  margin-top: 0.75rem;
+  max-width: 52ch;
+  color: var(--muted);
+}
+.project__dlist { margin-top: 0.5rem; max-width: 56ch; }
+.project__dlist li {
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.project__dlist li:last-child { border-bottom: 0; }
+
 .project__media {
   display: block;
   position: relative;
