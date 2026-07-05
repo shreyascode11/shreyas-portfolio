@@ -72,10 +72,10 @@ export class Hero {
     const count = quality === 'high' ? 380 : 200;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      const radius = 2.5 + Math.random() * 6;
-      const theta = Math.random() * Math.PI * 2;
-      positions[i * 3] = Math.cos(theta) * radius;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 6;
+      // Uniform box wider than the widest frustum slice, so stars reach
+      // every corner of the viewport (the rock occludes its own area).
+      positions[i * 3] = (Math.random() - 0.5) * 17;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 9;
       positions[i * 3 + 2] = -1 - Math.random() * 5;
     }
     const particleGeometry = new THREE.BufferGeometry();
