@@ -137,6 +137,61 @@ function renderProjects() {
 }
 
 // ---------------------------------------------------------------------
+// Contact form → n8n webhook. Any 2xx counts as success; on failure we
+// keep the user's text and point them at the mailto fallback.
+// ---------------------------------------------------------------------
+const N8N_WEBHOOK_URL =
+  'https://shreyas11.app.n8n.cloud/webhook/portfolio-contact';
+
+function initContactForm() {
+  const form = document.querySelector('[data-contact-form]');
+  if (!form) return;
+  const status = form.querySelector('[data-form-status]');
+  const button = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!form.reportValidity()) return;
+
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    // Honeypot filled → it's a bot; pretend everything went fine
+    if (data.website) {
+      form.reset();
+      return;
+    }
+
+    button.disabled = true;
+    status.className = 'cform__status mono';
+    status.textContent = 'Sending…';
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      status.classList.add('is-ok');
+      status.textContent = 'Message sent — I’ll reply soon.';
+      form.reset();
+    } catch (err) {
+      console.error('Contact form failed:', err);
+      status.classList.add('is-error');
+      status.textContent = 'Something broke — use the email link below.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
 // Render Journey (experience + education) and Certifications from data.
 // ---------------------------------------------------------------------
 function renderProfile() {
@@ -231,6 +286,7 @@ function startLocalClock() {
 async function boot() {
   renderProjects();
   renderProfile();
+  initContactForm();
   startLocalClock();
 
   let hero = null;

@@ -229,7 +229,7 @@
             <span class="pillar__index mono">04</span>
             <h3 class="pillar__title">Cloud, Data &amp; Tooling</h3>
             <ul class="pillar__items">
-              <li>PostgreSQL</li><li>AWS</li><li>Vercel</li><li>Render</li><li>Postman</li><li>Git</li><li>GitHub</li>
+              <li>PostgreSQL</li><li>AWS</li><li>Vercel</li><li>Render</li><li>n8n</li><li>Postman</li><li>Git</li><li>GitHub</li>
             </ul>
           </li>
         </ul>
@@ -335,8 +335,32 @@
           A website, an AI agent, or something in between — if it's ambitious,
           I want to hear about it. One email is all it takes.
         </p>
+        <!-- Contact form → n8n webhook (see initContactForm in main.js) -->
+        <form class="cform" data-contact-form data-reveal novalidate>
+          <div class="cform__grid">
+            <label class="cform__field">
+              <span class="cform__label mono">Name</span>
+              <input class="cform__input" type="text" name="name" required autocomplete="name" placeholder="Your name" />
+            </label>
+            <label class="cform__field">
+              <span class="cform__label mono">Email</span>
+              <input class="cform__input" type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+            </label>
+          </div>
+          <label class="cform__field">
+            <span class="cform__label mono">Message</span>
+            <textarea class="cform__input cform__input--area" name="message" required rows="4" placeholder="A website, an AI agent, an internship, an idea…"></textarea>
+          </label>
+          <!-- Honeypot — humans never see it, bots fill it -->
+          <input class="cform__hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <div class="cform__foot">
+            <button class="btn btn--fill" type="submit" data-hover>Send message</button>
+            <span class="cform__status mono" data-form-status aria-live="polite"></span>
+          </div>
+          <p class="cform__alt mono">Prefer email? <a href="mailto:shreoriginal@gmail.com?subject=Let%27s%20build%20something" data-hover>shreoriginal@gmail.com ↗</a></p>
+        </form>
+
         <div class="contact__actions" data-reveal>
-          <a class="btn btn--fill" href="mailto:shreoriginal@gmail.com?subject=Let%27s%20build%20something">shreoriginal@gmail.com</a>
           <a class="btn" href="https://github.com/shreyascode11/" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
           <a class="btn" href="https://www.linkedin.com/in/shreyas1102/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
           <a class="btn" href="https://www.instagram.com/_shreyassrivas_/" target="_blank" rel="noopener noreferrer">Instagram ↗</a>
