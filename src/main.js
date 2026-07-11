@@ -115,7 +115,7 @@ function renderProjects() {
                 : `<img src="${p.image}" alt="${p.name} — project preview" loading="lazy" decoding="async" width="1024" height="768" />`;
               const href = p.links.live || p.links.github;
               return href
-                ? `<a class="project__media" href="${href}" target="_blank" rel="noopener noreferrer" data-hover data-name="${p.name}" aria-label="Open ${p.name}">${media}</a>`
+                ? `<a class="project__media" href="${href}" target="_blank" rel="noopener noreferrer" data-hover data-cursor-label="View" data-name="${p.name}" aria-label="Open ${p.name}">${media}</a>`
                 : `<div class="project__media" data-name="${p.name}">${media}</div>`;
             })()}
           </div>
@@ -134,6 +134,85 @@ function renderProjects() {
     toggle.textContent = open ? 'Less −' : 'More +';
     setTimeout(() => ScrollTrigger.refresh(), 650);
   });
+}
+
+// ---------------------------------------------------------------------
+// Experience layer: hero scroll-exit, statement mouse-parallax and
+// magnetic buttons. Desktop + full-motion only (guarded at call site).
+// ---------------------------------------------------------------------
+function initHeroScroll(hero) {
+  const scrollTrigger = {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true,
+    onUpdate: (self) => hero?.setScrollProgress(self.progress)
+  };
+  // Statement exits slower than the scroll (classic depth trick);
+  // the aside drifts faster, like a nearer layer.
+  gsap.to('.hero__inner', { yPercent: 30, ease: 'none', scrollTrigger });
+  gsap.to('.hero__aside', {
+    yPercent: 80,
+    ease: 'none',
+    scrollTrigger: { ...scrollTrigger, onUpdate: undefined }
+  });
+}
+
+/** Statement + aside lean gently away from the cursor. */
+function createHeroParallax() {
+  const statement = document.querySelector('.hero__statement');
+  const aside = document.querySelector('.hero__aside');
+  if (!statement) return () => {};
+
+  const setSX = gsap.quickSetter(statement, 'x', 'px');
+  const setSY = gsap.quickSetter(statement, 'y', 'px');
+  const setAX = aside ? gsap.quickSetter(aside, 'x', 'px') : () => {};
+
+  const target = { x: 0, y: 0 };
+  const pos = { x: 0, y: 0 };
+  window.addEventListener('pointermove', (e) => {
+    target.x = (e.clientX / window.innerWidth) * 2 - 1;
+    target.y = (e.clientY / window.innerHeight) * 2 - 1;
+  }, { passive: true });
+
+  return () => {
+    pos.x += (target.x - pos.x) * 0.05;
+    pos.y += (target.y - pos.y) * 0.05;
+    setSX(pos.x * -16);
+    setSY(pos.y * -10);
+    setAX(pos.x * -28);
+  };
+}
+
+/** Pills gently pull toward the cursor and spring back on leave. */
+function initMagnetic() {
+  document
+    .querySelectorAll('.btn, .nav__theme, .nav__burger, .footer__top')
+    .forEach((el) => {
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        const x = e.clientX - (r.left + r.width / 2);
+        const y = e.clientY - (r.top + r.height / 2);
+        gsap.to(el, { x: x * 0.35, y: y * 0.35, duration: 0.4, ease: 'power3.out' });
+      });
+      el.addEventListener('pointerleave', () => {
+        gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.45)' });
+      });
+    });
+}
+
+// Console easter egg — developers always look.
+function signConsole() {
+  try {
+    console.log(
+      '%cS.%c\n\nNice to see a fellow dev in here.\n' +
+        'Hand-written Three.js + GLSL, no frameworks — the code is at\n' +
+        'https://github.com/shreyascode11/shreyas-portfolio\n\n' +
+        'Say hi: shreoriginal@gmail.com',
+      'font: 700 64px "Space Grotesk", sans-serif; color: #ff4b00;',
+      'font: 12px monospace; color: #8a8a82;'
+    );
+  } catch { /* consoles can be weird; never break the site over a gag */ }
 }
 
 // ---------------------------------------------------------------------
@@ -228,7 +307,7 @@ function renderProfile() {
         <p class="cert__desc">${c.desc}</p>
         ${c.url ? '<span class="cert__view mono">View certificate ↗</span>' : ''}`;
       return c.url
-        ? `<li data-reveal><a class="cert" href="${c.url}" target="_blank" rel="noopener noreferrer" aria-label="View certificate: ${c.name}">${inner}</a></li>`
+        ? `<li data-reveal><a class="cert" href="${c.url}" target="_blank" rel="noopener noreferrer" data-cursor-label="Open" aria-label="View certificate: ${c.name}">${inner}</a></li>`
         : `<li class="cert" data-reveal>${inner}</li>`;
     })
     .join('');
@@ -325,7 +404,11 @@ async function boot() {
     reducedMotion,
     onExit: () => {
       hero?.intro();
-      if (!reducedMotion) new Reveal();
+      if (!reducedMotion) {
+        new Reveal();
+        initHeroScroll(hero);
+        if (!isTouch) initMagnetic();
+      }
     }
   });
 
@@ -338,6 +421,9 @@ async function boot() {
   new Menu(smoothScroll);
 
   const cursor = !isTouch && !reducedMotion ? new Cursor() : null;
+  const heroParallax =
+    !isTouch && !reducedMotion ? createHeroParallax() : null;
+  signConsole();
 
   // Only render GL scenes while their sections are (nearly) on screen —
   // no reason to burn GPU at the footer. Marquee pauses offscreen too.
@@ -358,7 +444,10 @@ async function boot() {
 
   // ------ single shared render loop ------
   gsap.ticker.add((time) => {
-    if (visible.hero) hero?.update(time);
+    if (visible.hero) {
+      hero?.update(time);
+      heroParallax?.();
+    }
     if (visible.work) distortion?.update(time);
     cursor?.update();
   });

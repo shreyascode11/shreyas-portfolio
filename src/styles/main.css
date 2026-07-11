@@ -124,11 +124,25 @@ body::after {
   position: fixed; top: 0; left: 0;
   z-index: var(--z-cursor);
   width: 14px; height: 14px;
-  margin: -7px 0 0 -7px;
+  /* CSS `translate` centers the box; gsap's transform x/y composes on top */
+  translate: -50% -50%;
   border-radius: 50%;
   background: var(--accent);
   pointer-events: none;
   opacity: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Context-label chip ("View", "Open") */
+.cursor.is-label {
+  width: auto; height: auto;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
 }
 html.has-cursor a, html.has-cursor button { cursor: none; }
 html.has-cursor { cursor: none; }

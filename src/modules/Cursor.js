@@ -48,11 +48,20 @@ export class Cursor {
       }
     }, { passive: true });
 
-    // Scale up on interactive elements (event delegation)
+    // Context labels win over the plain grow (event delegation)
     document.addEventListener('pointerover', (e) => {
+      const labelled = e.target.closest('[data-cursor-label]');
+      if (labelled) {
+        this.setLabel(labelled.dataset.cursorLabel);
+        return;
+      }
       if (e.target.closest(HOVER_SELECTOR)) this.grow();
     });
     document.addEventListener('pointerout', (e) => {
+      if (e.target.closest('[data-cursor-label]')) {
+        this.clearLabel();
+        return;
+      }
       if (e.target.closest(HOVER_SELECTOR)) this.shrink();
     });
 
@@ -76,6 +85,25 @@ export class Cursor {
 
   shrink() {
     gsap.to(this.el, { scale: 1, opacity: 1, duration: 0.35, ease: 'power3.out' });
+    this.spawning = true;
+  }
+
+  /** Morph the dot into a labelled chip ("View", "Open"…). */
+  setLabel(text) {
+    this.el.classList.add('is-label');
+    this.el.textContent = text;
+    gsap.fromTo(
+      this.el,
+      { scale: 0.6 },
+      { scale: 1, opacity: 1, duration: 0.35, ease: 'power3.out' }
+    );
+    this.spawning = false;
+  }
+
+  clearLabel() {
+    this.el.classList.remove('is-label');
+    this.el.textContent = '';
+    gsap.to(this.el, { scale: 1, opacity: 1, duration: 0.3, ease: 'power3.out' });
     this.spawning = true;
   }
 

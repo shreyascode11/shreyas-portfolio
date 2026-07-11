@@ -64,7 +64,10 @@ export class Hero {
     this.mesh = new THREE.Mesh(geometry, material);
     // Position/scale are viewport-dependent — see resize()
     this.baseScale = 1;
-    this.mesh.position.set(0.9, 0.15, 0);
+    this.baseX = 0.9;
+    this.baseY = 0.15;
+    this.scrollProgress = 0; // 0 at top → 1 when the hero has scrolled away
+    this.mesh.position.set(this.baseX, this.baseY, 0);
     this.scene.add(this.mesh);
 
     // Ambient particle field — floating dust around the object, like the
@@ -158,6 +161,11 @@ export class Hero {
     );
   }
 
+  /** ScrollTrigger feeds this 0→1 as the hero section scrolls away. */
+  setScrollProgress(p) {
+    this.scrollProgress = p;
+  }
+
   /** @param {number} time seconds since start */
   update(time) {
     if (this.contextLost) return;
@@ -174,8 +182,17 @@ export class Hero {
     this.mesh.rotation.y = time * 0.08 + this.mouse.x * 0.35;
     this.mesh.rotation.x = this.mouse.y * -0.25;
 
+    // Mouse parallax: rock shifts with the cursor, stars shift against it,
+    // so the scene reads as layers with real depth between them.
+    const p = this.scrollProgress;
+    this.mesh.position.x = this.baseX + this.mouse.x * 0.18;
+    // Scroll exit: the rock drifts up and slightly away as you leave the hero
+    this.mesh.position.y = this.baseY + this.mouse.y * 0.1 + p * 1.6;
+    if (p > 0.001) this.mesh.scale.setScalar(this.baseScale * (1 - 0.25 * p));
+
     // Particle field drifts even slower — depth without distraction
     this.particles.rotation.y = time * 0.015;
+    this.particles.position.set(-this.mouse.x * 0.45, -this.mouse.y * 0.3, 0);
 
     this.gl.render(this.scene, this.camera);
   }
@@ -191,14 +208,18 @@ export class Hero {
     // so it never swallows the statement at the bottom.
     if (w < 700) {
       this.baseScale = 0.58;
-      this.mesh.position.set(0, 1.15, 0);
+      this.baseX = 0;
+      this.baseY = 1.15;
     } else if (w < 1100) {
       this.baseScale = 0.82;
-      this.mesh.position.set(0, 0.5, 0);
+      this.baseX = 0;
+      this.baseY = 0.5;
     } else {
       this.baseScale = 1;
-      this.mesh.position.set(0.9, 0.15, 0);
+      this.baseX = 0.9;
+      this.baseY = 0.15;
     }
+    this.mesh.position.set(this.baseX, this.baseY, 0);
     this.mesh.scale.setScalar(this.baseScale);
   }
 
