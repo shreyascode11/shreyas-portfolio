@@ -6,6 +6,12 @@
 
 export const experience = [
   {
+    role: "AI Web Development Intern",
+    org: "InAmigos Foundation (IAF)",
+    period: "Jul 2026 — Aug 2026",
+    desc: "Audited the foundation's live site for injected SEO spam, broken links and inconsistent contact data, then delivered new portfolio and campaign microsites — owned from design through deployment."
+  },
+  {
     role: "Technical Team Member — Cloud",
     org: "SRM Insider Community",
     period: "Jun 2026 — Present",
@@ -24,13 +30,20 @@ export const education = [
     degree: "B.Tech — CSE, Cloud Computing",
     school: "SRM Institute of Science & Technology, Kattankulathur",
     period: "Jul 2025 — Jun 2029",
-    desc: "Computer Science & Engineering with a specialization in Cloud Computing — paired with AI and web development in everything I build."
+    desc: "Computer Science & Engineering with a specialization in Cloud Computing — paired with AI and web development in everything I build. SGPA 9.57 / 10."
   }
 ];
 
 // `url` opens in a new tab when the card is clicked — a bundled file in
 // /public/assets/certs/ or an external verification link.
 export const certifications = [
+  {
+    name: "1st Place — NitroStack × MCP To The Moon Buildathon",
+    issuer: "NitroStack · SRMIST (806 participants)",
+    period: "Aug 2026",
+    desc: "Won the Enterprise AI & Workplace Automation track building Aegis, an MCP server that detects and auto-fixes toxic AI-agent permission combinations, in a 48-hour on-campus build sprint.",
+    url: "https://nitrostack.ai/university/6a4e238c82556efe6ab3cb6f/certificate/6a6af3f7f77f4626aab0f3b8"
+  },
   {
     name: "Best Project — The Last CEO",
     issuer: "SRM Insider Community",

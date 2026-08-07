@@ -9,6 +9,25 @@
 // =====================================================================
 export const projects = [
   {
+    name: "Aegis",
+    year: "2026",
+    blurb: "An MCP server that audits the 'blast radius' of AI agents — mapping their full capability graph across every connected tool, detecting toxic permission combinations, and auto-applying a policy fix before a dangerous connection ships to production.",
+    role: "Team Lead — TeamX (team project)",
+    award: "1st Place — NitroStack × MCP To The Moon Buildathon, 806 participants · Aug 2026",
+    why: "Wiring agents into Gmail, databases, Slack and file systems looks safe one connection at a time — but the combinations open real attack paths, the kind that leaked private GitHub repos and database tokens in 2026. Aegis maps the graph and flags the 'lethal trifecta' — private-data access, untrusted-content exposure, external communication — before it ships.",
+    features: [
+      "Deterministic graph traversal — no LLM in the detection path, so attack-path detection can't be prompt-injected or hallucinate",
+      "Detects toxic permission combinations, e.g. read-private-data + send-external, the exact pattern behind 2026 MCP breaches at GitHub, Cursor and Asana",
+      "Four MCP tools — connect_tool, get_capability_graph, detect_attack_paths, apply_policy_fix — cover audit through remediation",
+      "Live capability-graph visualization in React Flow, so risky permission paths are visible, not buried in logs"
+    ],
+    tech: ["TypeScript", "MCP", "React Flow", "NitroStack SDK"],
+    links: {
+      github: "https://github.com/prince-rai88/aegis-mcp"
+    },
+    image: "/assets/projects/aegis.jpg" // [PLACEHOLDER]
+  },
+  {
     name: "EcoScan",
     year: "2026",
     blurb: "AI-powered, real-time community waste-management platform. Citizens report waste spots on an interactive map; volunteers claim and clean them, and every cleanup is auto-verified by an AI vision model.",

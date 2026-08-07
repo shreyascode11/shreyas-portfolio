@@ -3,7 +3,7 @@
 # Shreyas — Portfolio
 
 **A cinematic, WebGL-driven personal portfolio, built from scratch.**
-Custom GLSL shaders · smooth scroll · day & night themes · no frameworks, no backend.
+Custom GLSL shaders · smooth scroll · day & night themes · no framework, no server of its own.
 
 ### [**View it live →**](https://shreyas-portfolio-virid.vercel.app/)
 
@@ -19,7 +19,7 @@ Custom GLSL shaders · smooth scroll · day & night themes · no frameworks, no 
 
 ## Overview
 
-This is the personal portfolio of **Shreyas** — a full-stack AI developer. The site itself is part of the portfolio: every shader, animation and interaction is hand-written in vanilla JavaScript and GLSL, with no UI framework and no server. It ships as a fully static bundle.
+This is the personal portfolio of **Shreyas** — a full-stack AI developer. The site itself is part of the portfolio: every shader, animation and interaction is hand-written in vanilla JavaScript and GLSL, with no UI framework and no server code of its own. It ships as a fully static bundle, deployed on Vercel; the one dynamic feature — the contact form — talks directly to an [n8n](https://n8n.io) webhook rather than a backend this repo hosts.
 
 ## Highlights
 
@@ -28,6 +28,8 @@ This is the personal portfolio of **Shreyas** — a full-stack AI developer. The
 - **WebGL hover distortion** — project thumbnails ripple with an RGB-split displacement shader on hover, supporting both static images and looping video textures.
 - **Procedural cover art** — projects without final imagery receive canvas-generated, poster-style covers (index numeral, orbit rings, gradient field), themed to match the active palette and cached per theme.
 - **Cinematic motion** — preloader with a real progress counter, per-character text reveals, accent wipe transitions between sections, Lenis-powered smooth scrolling, and scrollspy navigation.
+- **A layered interaction system** — the hero parallaxes against the cursor and exits in depth-sorted layers on scroll, buttons pull magnetically toward the pointer, and the custom cursor morphs into contextual labels ("View", "Open") over clickable cards, all gated behind a shared `prefers-reduced-motion` / touch check.
+- **Automated contact pipeline** — the contact form posts to an n8n webhook that notifies by email, logs the lead to a spreadsheet, and auto-replies to the sender, with a honeypot field and a graceful `mailto:` fallback if the webhook is ever unreachable.
 - **Data-driven content** — projects, experience, education, certifications and languages are plain JavaScript modules; layout, reveal animations and WebGL all derive from them.
 
 ## Tech Stack
@@ -38,6 +40,7 @@ This is the personal portfolio of **Shreyas** — a full-stack AI developer. The
 | 3D / Shaders | [Three.js](https://threejs.org) with hand-written GLSL |
 | Animation | [GSAP](https://gsap.com) + ScrollTrigger |
 | Scrolling | [Lenis](https://lenis.darkroom.engineering) |
+| Automation | [n8n](https://n8n.io) — webhook-driven contact pipeline (email, spreadsheet log, auto-reply) |
 | Styling | Plain CSS on a design-token system (custom properties) |
 | Hosting | Vercel (fully static — works on any static host) |
 
