@@ -218,9 +218,13 @@ function signConsole() {
 // ---------------------------------------------------------------------
 // Contact form → n8n webhook. Any 2xx counts as success; on failure we
 // keep the user's text and point them at the mailto fallback.
+//
+// Self-hosted on a free Render instance, which spins down after idle —
+// the first request after a quiet period can take 30-50s to wake it,
+// so the timeout is generous and the status message says so past 8s.
 // ---------------------------------------------------------------------
 const N8N_WEBHOOK_URL =
-  'https://shreyas11.app.n8n.cloud/webhook/portfolio-contact';
+  'https://shreyas-n8n.onrender.com/webhook/portfolio-contact';
 
 function initContactForm() {
   const form = document.querySelector('[data-contact-form]');
@@ -244,10 +248,14 @@ function initContactForm() {
     button.disabled = true;
     status.className = 'cform__status mono';
     status.textContent = 'Sending…';
+    // Free-tier host may be asleep — reassure rather than let it look stuck
+    const wakingHint = setTimeout(() => {
+      status.textContent = 'Still sending — waking up the server…';
+    }, 8000);
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 55000);
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -265,6 +273,7 @@ function initContactForm() {
       status.classList.add('is-error');
       status.textContent = 'Something broke — use the email link below.';
     } finally {
+      clearTimeout(wakingHint);
       button.disabled = false;
     }
   });
