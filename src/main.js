@@ -415,8 +415,13 @@ async function boot() {
       hero?.intro();
       if (!reducedMotion) {
         new Reveal();
-        initHeroScroll(hero);
-        if (!isTouch) initMagnetic();
+        // Scrub-linked scroll animation adds real per-tick cost — worth it
+        // on a trackpad/mouse, but a common source of scroll jank on
+        // phones, so touch gets a plain (still smooth) exit instead.
+        if (!isTouch) {
+          initHeroScroll(hero);
+          initMagnetic();
+        }
       }
     }
   });
