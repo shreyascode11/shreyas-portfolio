@@ -6,6 +6,12 @@
 
 export const experience = [
   {
+    role: "Web Dev Lead",
+    org: "SRM Insider Community",
+    period: "Aug 2026 — Present",
+    desc: "Leading the web development domain, guiding team members on frontend and backend implementations."
+  },
+  {
     role: "AI Web Development Intern",
     org: "InAmigos Foundation (IAF)",
     period: "Jul 2026 — Aug 2026",
@@ -14,13 +20,13 @@ export const experience = [
   {
     role: "Technical Team Member — Cloud",
     org: "SRM Insider Community",
-    period: "Jun 2026 — Present",
+    period: "Jun 2026 — Aug 2026",
     desc: "Cloud domain of the community's technical team — deploying and running production tools."
   },
   {
     role: "Web Dev Member",
     org: "SRM Insider Community",
-    period: "Apr 2026 — Present",
+    period: "Apr 2026 — Aug 2026",
     desc: "Building and shipping web tools for the community — FastAPI, PostgreSQL, React and more. Chennai, India."
   }
 ];
