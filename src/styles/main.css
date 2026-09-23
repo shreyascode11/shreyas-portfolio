@@ -272,6 +272,58 @@ html.menu-open { overflow: hidden; }
   background: var(--text);
   color: var(--bg);
 }
+/* SVG sun/moon, swapped by theme: the icon shows where a click takes you */
+.nav__theme-icon { width: 1.05rem; height: 1.05rem; grid-area: 1 / 1; transition: transform var(--dur-med) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
+.nav__theme-icon--moon { width: 0.95rem; height: 0.95rem; }
+:root[data-theme='dark'] .nav__theme-icon--moon,
+:root:not([data-theme='dark']) .nav__theme-icon--sun { opacity: 0; transform: rotate(-60deg) scale(0.6); }
+.nav__theme:hover .nav__theme-icon { transform: rotate(20deg); }
+:root[data-theme='dark'] .nav__theme:hover .nav__theme-icon--moon,
+:root:not([data-theme='dark']) .nav__theme:hover .nav__theme-icon--sun { transform: rotate(-60deg) scale(0.6); }
+
+/* ⌘K trigger — keyboard-first visitors only (hidden on touch/small) */
+.nav__cmd {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  height: 2.25rem;
+  padding-inline: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.nav__cmd kbd { font: inherit; font-size: 0.75rem; letter-spacing: 0.02em; }
+.nav__cmd:hover { border-color: var(--text); color: var(--text); }
+@media (hover: none), (pointer: coarse) { .nav__cmd { display: none; } }
+
+/* =====================================================================
+   READING PROGRESS
+   ===================================================================== */
+.progress {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: var(--z-progress);
+  height: 2px;
+  pointer-events: none;
+}
+.progress__bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+/* =====================================================================
+   THEME SWITCH — circular reveal (View Transitions API)
+   The animation itself is driven from Theme.js; here we only disable
+   the default cross-fade, and freeze colour transitions mid-switch so
+   the revealed snapshot is already the final palette.
+   ===================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+.is-theme-switching,
+.is-theme-switching *,
+.is-theme-switching *::before,
+.is-theme-switching *::after { transition: none !important; }
 
 /* =====================================================================
    HERO — full-viewport uppercase statement over the 3D object
@@ -393,6 +445,8 @@ html.menu-open { overflow: hidden; }
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--muted);
+  display: inline-block;
+  transform: skewX(var(--marquee-skew, 0deg));
 }
 .marquee__group i {
   font-style: normal;
@@ -465,7 +519,7 @@ html.menu-open { overflow: hidden; }
 .stats {
   margin-top: clamp(4rem, 10vh, 7rem);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid var(--line);
 }
 .stat {
@@ -474,12 +528,13 @@ html.menu-open { overflow: hidden; }
 .stat + .stat { border-left: 1px solid var(--line); padding-left: 2rem; }
 .stat__num {
   display: block;
-  font-size: clamp(2.75rem, 6vw, 5.5rem);
+  font-size: clamp(2.75rem, 5vw, 4.75rem);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
-.stat__num i { font-style: normal; color: var(--accent); }
+.stat__num i { font-style: normal; color: var(--accent); font-size: 0.5em; letter-spacing: 0; vertical-align: 0.9em; }
 .stat__label { display: block; margin-top: 0.9rem; color: var(--muted); }
 
 /* =====================================================================
@@ -620,31 +675,73 @@ html.menu-open { overflow: hidden; }
 .pillars { border-top: 1px solid var(--line); }
 .pillar {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: 4rem minmax(0, 0.95fr) minmax(0, 1.45fr);
   gap: clamp(1.5rem, 4vw, 4rem);
   align-items: start;
-  padding-block: clamp(2rem, 5vh, 3.5rem);
+  padding-block: clamp(2.25rem, 5.5vh, 3.75rem);
   border-bottom: 1px solid var(--line);
 }
 .pillar__index { color: var(--accent); padding-top: 0.6rem; }
 .pillar__title {
-  font-size: clamp(1.75rem, 3.5vw, 3.25rem);
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.05;
   text-transform: uppercase;
 }
+.pillar__note { margin-top: 0.9rem; color: var(--muted); max-width: 32ch; line-height: 1.6; }
+
+/* Tool chips: brand logo (monochrome, currentColor) + name */
 .pillar__items {
   display: flex; flex-wrap: wrap;
-  gap: 0.4rem 1.4rem;
-  padding-top: 0.6rem;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
 }
-.pillar__items li {
+.chip {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.4rem 0.95rem 0.4rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
   color: var(--muted);
-  font-size: 1.0625rem;
-  transition: color var(--dur-fast) var(--ease-out);
+  font-size: 0.975rem;
+  line-height: 1;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
 }
-.pillar:hover .pillar__items li { color: var(--text); }
+.chip__icon {
+  flex: none;
+  display: grid; place-items: center;
+  width: 1.9rem; height: 1.9rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+}
+.chip__icon svg {
+  width: 1rem; height: 1rem;
+  fill: currentColor;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.4s var(--ease-out), transform 0.5s var(--ease-out);
+}
+.chip__icon.is-loaded svg { opacity: 0.85; transform: none; }
+.chip__mono {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.pillar:hover .chip { color: var(--text); }
+.chip:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  transform: translateY(-2px);
+}
+.chip:hover .chip__icon { color: var(--accent); }
+.chip:hover .chip__icon svg { opacity: 1; }
+.chip:hover .chip__mono { color: var(--accent); }
 
 /* =====================================================================
    JOURNEY — work & education timelines
@@ -915,8 +1012,35 @@ html.menu-open { overflow: hidden; }
 }
 .btn--fill:hover { background: var(--text); border-color: var(--text); color: var(--bg); }
 
-.footer {
+/* Closing wordmark (font-size set by initWordmark) */
+.wordmark {
   margin-top: clamp(5rem, 12vh, 9rem);
+  overflow: hidden;
+  line-height: 0.78;
+  padding-top: 0.04em;
+}
+.wordmark__text {
+  display: inline-block;
+  white-space: nowrap;
+  /* The negative tracking also applies after the last letter, pushing
+     its ink past the box — and background-clip:text only paints inside
+     the box, which clipped the final "S". Padding gives it room (the
+     width fit in initWordmark measures the padded box). */
+  padding: 0.04em 0.06em 0.02em 0;
+  font-size: 18vw; /* pre-JS estimate; replaced with an exact fit */
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.82;
+  text-transform: uppercase;
+  background: linear-gradient(to bottom, var(--text) 20%, color-mix(in srgb, var(--text) 8%, transparent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  user-select: none;
+}
+
+.footer {
+  margin-top: clamp(2rem, 5vh, 3.5rem);
   padding-block: 2rem;
   border-top: 1px solid var(--line);
   display: flex; align-items: center; justify-content: space-between;
@@ -937,6 +1061,165 @@ html.menu-open { overflow: hidden; }
   pointer-events: none;
 }
 .distortion-canvas:not(.is-active) { display: none; }
+
+/* =====================================================================
+   COMMAND PALETTE (⌘K)
+   ===================================================================== */
+.cmdk {
+  position: fixed; inset: 0;
+  z-index: var(--z-palette);
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: min(18vh, 9rem) var(--gutter) var(--gutter);
+}
+.cmdk[hidden] { display: none; }
+.cmdk__backdrop {
+  position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-out);
+}
+.cmdk__panel {
+  position: relative;
+  width: min(40rem, 100%);
+  max-height: min(34rem, 70vh);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+  transition: opacity 0.25s var(--ease-out), transform 0.35s var(--ease-out);
+}
+.cmdk.is-open .cmdk__backdrop { opacity: 1; }
+.cmdk.is-open .cmdk__panel { opacity: 1; transform: none; }
+
+.cmdk__search {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.cmdk__prompt { color: var(--accent); font-size: 1.1rem; letter-spacing: 0; }
+.cmdk__input {
+  flex: 1; min-width: 0;
+  font: inherit; font-size: 1.1rem;
+  color: var(--text);
+  background: none; border: 0; outline: none;
+}
+.cmdk__input::placeholder { color: var(--muted); }
+.cmdk__esc {
+  font-size: 0.6875rem; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+}
+.cmdk__list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem;
+}
+.cmdk__group {
+  padding: 0.9rem 0.75rem 0.4rem;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.cmdk__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+.cmdk__item.is-active { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.cmdk__item.is-active .cmdk__label::before {
+  content: ''; display: inline-block;
+  width: 6px; height: 6px; margin-right: 0.6rem; vertical-align: middle;
+  border-radius: 50%; background: var(--accent);
+}
+.cmdk__hint {
+  font-size: 0.6875rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;
+}
+.cmdk__empty { padding: 1.5rem 0.75rem; color: var(--muted); }
+.cmdk__foot {
+  display: flex; gap: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.6875rem; color: var(--muted);
+}
+.cmdk__foot kbd { font: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 0 0.3rem; margin-right: 0.2rem; }
+@media (max-width: 600px) { .cmdk__foot { display: none; } }
+
+/* =====================================================================
+   TOAST
+   ===================================================================== */
+.toast {
+  position: fixed; left: 50%; bottom: 2rem;
+  z-index: var(--z-toast);
+  padding: 0.8rem 1.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--text); color: var(--bg);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.3s var(--ease-out), transform 0.4s var(--ease-out);
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* =====================================================================
+   JOURNEY — multi-role org (promotion track)
+   ===================================================================== */
+.timeline__item--group > .timeline__period { margin-top: 0.6rem; }
+.timeline__roles {
+  position: relative;
+  margin-top: 1.5rem;
+  padding-left: 1.4rem;
+}
+.timeline__roles::before {
+  content: '';
+  position: absolute; left: 3px; top: 0.55rem; bottom: 0.55rem;
+  width: 1px;
+  background: var(--line);
+}
+.timeline__step { position: relative; padding-bottom: 1.6rem; }
+.timeline__step:last-child { padding-bottom: 0; }
+.timeline__step::before {
+  content: '';
+  position: absolute; left: calc(-1.4rem); top: 0.45rem;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  background: var(--bg);
+}
+.timeline__step.is-current::before { border-color: var(--accent); background: var(--accent); }
+.timeline__step-role {
+  display: block;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.timeline__step.is-current .timeline__step-role::after {
+  content: 'Current';
+  margin-left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  vertical-align: middle;
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 400;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius-pill);
+}
+.timeline__step .timeline__period { margin-top: 0.25rem; }
+.timeline__step .timeline__desc { margin-top: 0.5rem; }
+
+/* =====================================================================
+   CONTACT — email fallback + footer source link
+   ===================================================================== */
+.cform__fallback { margin-top: 1.25rem; }
+.cform__fallback[hidden] { display: none; }
+.footer__src { color: var(--muted); border-bottom: 1px solid var(--line); transition: color var(--dur-fast) var(--ease-out); }
+.footer__src:hover { color: var(--accent); }
 
 /* =====================================================================
    DAY-VIEW DEPTH — on the light ground, borders alone read flat;
@@ -967,8 +1250,10 @@ html.menu-open { overflow: hidden; }
   .about__grid { margin-left: 0; }
   .pillar { grid-template-columns: 3rem minmax(0, 1fr); }
   .pillar__items { grid-column: 2; }
-  .stats { grid-template-columns: 1fr; }
-  .stat + .stat { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; margin-top: 2rem; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat, .stat + .stat { padding: 2rem 1.25rem 2rem 0; border-left: 0; }
+  .stat:nth-child(even) { border-left: 1px solid var(--line); padding-left: 1.25rem; }
+  .stat:nth-child(n + 3) { border-top: 1px solid var(--line); }
 }
 
 @media (max-width: 900px) and (min-width: 0px) {

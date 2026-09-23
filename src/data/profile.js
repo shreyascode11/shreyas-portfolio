@@ -20,7 +20,7 @@ export const experience = [
   {
     role: "Technical Team Member — Cloud",
     org: "SRM Insider Community",
-    period: "Jun 2026 — Aug 2026",
+    period: "Jun 2026 — Present",
     desc: "Cloud domain of the community's technical team — deploying and running production tools."
   },
   {

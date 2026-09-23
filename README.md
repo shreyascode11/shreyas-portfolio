@@ -30,7 +30,8 @@ This is the personal portfolio of **Shreyas** — a full-stack AI developer. The
 - **Cinematic motion** — preloader with a real progress counter, per-character text reveals, accent wipe transitions between sections, Lenis-powered smooth scrolling, and scrollspy navigation.
 - **A layered interaction system** — the hero parallaxes against the cursor and exits in depth-sorted layers on scroll, buttons pull magnetically toward the pointer, and the custom cursor morphs into contextual labels ("View", "Open") over clickable cards, all gated behind a shared `prefers-reduced-motion` / touch check.
 - **Automated contact pipeline** — the contact form posts to an n8n webhook that notifies by email, logs the lead to a spreadsheet, and auto-replies to the sender, with a honeypot field and a graceful `mailto:` fallback if the webhook is ever unreachable.
-- **Data-driven content** — projects, experience, education, certifications and languages are plain JavaScript modules; layout, reveal animations and WebGL all derive from them.
+- **Command palette** — press ⌘K / Ctrl+K (or `/`) to jump to any section, copy the email, download the CV, switch themes or open a project; a keyboard-first ARIA combobox.
+- **Data-driven content** — projects, experience, education, certifications, languages and the tech stack are plain JavaScript modules; layout, reveal animations and WebGL all derive from them.
 
 ## Tech Stack
 
@@ -58,8 +59,10 @@ src/
 ├── shaders/                GLSL as template literals — simplex noise,
 │                           hero displacement, distortion + rounded-corner mask
 ├── modules/                Preloader · SmoothScroll · Cursor · Theme ·
-│                           Menu · Nav (scrollspy) · PageTransition · Reveal
-├── data/                   projects.js · profile.js (all site content)
+│                           Menu · Nav (scrollspy) · PageTransition · Reveal ·
+│                           CommandPalette (⌘K) · TextScramble · Toast
+├── data/                   projects.js · profile.js · stack.js (all site content)
+│                           icons.js — Simple Icons paths, lazy-loaded
 └── styles/                 tokens.css (design system) · main.css
 ```
 

@@ -6,6 +6,7 @@
 //                                        (wins over image if both set)
 //   image: "/assets/projects/xxx.jpg"  → static thumbnail
 // If neither file exists, a generated cover card is used instead.
+// Order = display order (strongest first).
 // =====================================================================
 export const projects = [
   {
@@ -25,7 +26,26 @@ export const projects = [
     links: {
       github: "https://github.com/prince-rai88/aegis-mcp"
     },
-    image: "/assets/projects/aegis.jpg" // [PLACEHOLDER]
+    image: "/assets/projects/aegis.jpg"
+  },
+  {
+    name: "Domain",
+    year: "2026",
+    blurb: "A 3D platformer that teaches web development: every level is a real web page. Fix the HTML, CSS or JavaScript and the world rebuilds so you can walk across what you built — 120 lessons from a first tag to async JavaScript.",
+    role: "Solo — Design & Build",
+    why: "Beginner courses teach code in a text box, disconnected from what the browser actually does with it. Domain makes layout physical: a bridge that's too short is a CSS bug you can see, and fixing the code is how you get across.",
+    features: [
+      "The browser is the rules engine — each level lays out in a hidden iframe and every element is measured into a walkable block, so CSS is never simulated",
+      "120 lessons across HTML, CSS, Flexbox and JavaScript with hints, debriefs and quizzes, plus a real website that grows one piece per lesson",
+      "Sandboxed JavaScript runner: acorn parsing, inserted loop guards, module rewriting, a console and a pretend server for fetch",
+      "React Three Fiber world with custom platformer physics, in-world DevTools for any block, and procedural textures and audio — no image or sound files"
+    ],
+    tech: ["Next.js", "React", "TypeScript", "Three.js", "React Three Fiber", "Zustand", "Tailwind CSS"],
+    links: {
+      live: "https://domain-indol-nine.vercel.app",
+      github: "https://github.com/shreyascode11/Domain"
+    },
+    image: "/assets/projects/domain.jpg"
   },
   {
     name: "EcoScan",
@@ -44,15 +64,15 @@ export const projects = [
       live: "https://eco-scan-eight.vercel.app",
       github: "https://github.com/shreyascode11/EcoScan"
     },
-    image: "/assets/projects/ecoscan.jpg" // [PLACEHOLDER]
+    image: "/assets/projects/ecoscan.jpg"
   },
   {
     name: "Insider-Agent",
     year: "2026",
-    blurb: "An agentic RAG assistant that serves as the official AI for the SRM Insiders Club — answering questions about club policies, roles, and deadlines with hallucination-free, source-grounded responses.",
+    blurb: "An agentic RAG assistant that serves as the official AI for the SRM Insiders Club — answering questions about club policies, roles, and deadlines with responses grounded in the official club manuals.",
     role: "Solo — Design & Build",
     tech: ["LangGraph", "RAG", "ChromaDB", "Groq", "Ollama", "Streamlit", "Python"],
-    why: "Club members kept asking the same policy and deadline questions, and generic chatbots make answers up. Insider-Agent answers only from the official club manuals — if it isn't in the documents, it doesn't claim it.",
+    why: "Club members kept asking the same policy and deadline questions, and generic chatbots make answers up. Insider-Agent retrieves from the official club manuals before it answers, so responses stay tied to real documents.",
     features: [
       "LangGraph state-machine agent decides when to search vs. answer and holds multi-turn context",
       "ChromaDB vector search retrieves exact manual passages before any answer is generated",
@@ -63,7 +83,7 @@ export const projects = [
       live: "https://srm-insider-agent.streamlit.app/",
       github: "https://github.com/shreyascode11/Insider-Agent"
     },
-    image: "/assets/projects/insider-agent.jpg" // [PLACEHOLDER]
+    image: "/assets/projects/insider-agent.jpg"
   },
   {
     name: "The-Last-CEO",
@@ -74,15 +94,16 @@ export const projects = [
     why: "Leaders make high-stakes AI-adoption calls with no way to see the long-term consequences — most simulators either lack realistic AI scenarios or never explain why an outcome happened.",
     features: [
       "Quarterly decisions scored live by XGBoost models trained on real AI-adoption data",
-      "Explainable forecasts — SHAP breaks every prediction down by factor, in dollars",
+      "Explainable forecasts — every prediction broken down factor by factor, in dollars",
       "3D playable voxel office, dynamic events (recessions, cyberattacks, viral hits) and 8 endings",
       "A what-if sandbox: drag strategy levers and the model re-forecasts revenue, ROI and risk in real time"
     ],
-    tech: ["TypeScript", "React", "FastAPI", "XGBoost", "Python", "SHAP"],
+    tech: ["TypeScript", "React", "FastAPI", "XGBoost", "Python"],
     links: {
       live: "https://the-last-ceo-eight.vercel.app/",
       github: "https://github.com/shreyascode11/The-Last-CEO"
     },
-    image: "/assets/projects/the-last-ceo.jpg" // [PLACEHOLDER]
+    image: "/assets/projects/the-last-ceo.jpg"
   }
 ];
+

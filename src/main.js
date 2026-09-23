@@ -15,6 +15,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { projects } from './data/projects.js';
 import { experience, education, certifications, languages } from './data/profile.js';
+import { stack } from './data/stack.js';
 import { Preloader } from './modules/Preloader.js';
 import { Theme } from './modules/Theme.js';
 import { Menu } from './modules/Menu.js';
@@ -23,6 +24,9 @@ import { Cursor } from './modules/Cursor.js';
 import { PageTransition } from './modules/PageTransition.js';
 import { Reveal } from './modules/Reveal.js';
 import { Nav } from './modules/Nav.js';
+import { CommandPalette } from './modules/CommandPalette.js';
+import { initScramble } from './modules/TextScramble.js';
+import { toast, copyText } from './modules/Toast.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -201,6 +205,155 @@ function initMagnetic() {
     });
 }
 
+/** Stats count up from zero the first time they scroll into view. */
+function initStats() {
+  document.querySelectorAll('[data-count]').forEach((el) => {
+    const target = parseFloat(el.dataset.count);
+    const decimals = Number(el.dataset.decimals || 0);
+    const pad = Number(el.dataset.pad || 0);
+    const format = (v) => {
+      const s = v.toFixed(decimals);
+      return pad ? s.padStart(pad, '0') : s;
+    };
+    const state = { v: 0 };
+    el.textContent = format(0); // hidden by the reveal until it enters
+    gsap.to(state, {
+      v: target,
+      duration: 1.6,
+      ease: 'power3.out',
+      onUpdate: () => (el.textContent = format(state.v)),
+      scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+    });
+  });
+}
+
+/**
+ * Closing "SHREYAS" wordmark: font-size is solved so the word spans the
+ * container exactly (real text, so the font's kerning is kept), then it
+ * rises out of its mask when scrolled to.
+ */
+function initWordmark() {
+  const el = document.querySelector('[data-wordmark]');
+  if (!el) return;
+  const fit = () => {
+    el.style.fontSize = '100px';
+    const measured = el.getBoundingClientRect().width;
+    const available = el.parentElement.clientWidth;
+    if (measured > 0) el.style.fontSize = `${Math.floor((100 * available / measured) * 99) / 100}px`;
+  };
+  fit();
+  document.fonts?.ready.then(fit);
+  window.addEventListener('resize', fit);
+  if (!reducedMotion) {
+    gsap.from(el, {
+      yPercent: 102,
+      duration: 1.5,
+      ease: 'power4.out',
+      scrollTrigger: { trigger: el.parentElement, start: 'top 92%' }
+    });
+  }
+}
+
+/** 2px accent bar across the top that fills as you read. */
+function initProgress() {
+  const bar = document.querySelector('[data-progress]');
+  if (!bar) return;
+  const setScale = gsap.quickSetter(bar, 'scaleX');
+  const update = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    setScale(max > 0 ? Math.min(scrollY / max, 1) : 0);
+  };
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+}
+
+/**
+ * Marquee reacts to scrolling: it speeds up with scroll velocity, runs
+ * in the direction you scroll, and the words lean into the motion.
+ * Drives the existing CSS animation through its playbackRate (no
+ * position jumps). Returns a per-frame update for the shared ticker.
+ */
+function createMarqueeVelocity(smoothScroll) {
+  const track = document.querySelector('.marquee__track');
+  if (!track?.getAnimations) return null;
+  let anim = null;
+
+  let lastY = scrollY;
+  let direction = 1;
+  let rate = 1;
+  let skew = 0;
+  return () => {
+    anim ??= track.getAnimations()[0];
+    if (!anim) return; // reduced motion → no CSS animation to drive
+    const v = smoothScroll ? smoothScroll.lenis.velocity : scrollY - lastY;
+    lastY = scrollY;
+    if (Math.abs(v) > 0.5) direction = Math.sign(v);
+    const targetRate = direction * (1 + Math.min(Math.abs(v) / 10, 4));
+    rate += (targetRate - rate) * 0.08;
+    skew += (Math.max(-8, Math.min(8, v * 0.25)) - skew) * 0.12;
+    anim.playbackRate = rate;
+    track.style.setProperty('--marquee-skew', `${skew.toFixed(2)}deg`);
+  };
+}
+
+/** Everything the ⌘K palette can do. */
+function buildCommands({ goTo, theme, smoothScroll }) {
+  const section = (id) => () => goTo(document.querySelector(id));
+  const open = (url) => () => window.open(url, '_blank', 'noopener');
+  const commands = [
+    { group: 'Navigate', label: 'Work', hint: '02', keywords: ['projects', 'portfolio'], run: section('#work') },
+    { group: 'Navigate', label: 'Stack', hint: '03', keywords: ['skills', 'tech', 'tools'], run: section('#stack') },
+    { group: 'Navigate', label: 'Journey', hint: '04', keywords: ['experience', 'education', 'career', 'timeline'], run: section('#journey') },
+    { group: 'Navigate', label: 'Freelance', hint: '05', keywords: ['services', 'hire', 'client'], run: section('#freelance') },
+    { group: 'Navigate', label: 'Certifications', hint: '06', keywords: ['awards', 'hackathon', 'achievements'], run: section('#certifications') },
+    { group: 'Navigate', label: 'Contact', hint: '07', keywords: ['message', 'reach', 'hire'], run: section('#contact') },
+    {
+      group: 'Navigate', label: 'Back to top', hint: '↑', keywords: ['home', 'hero', 'start'],
+      run: () => (smoothScroll ? smoothScroll.scrollTo(0, { duration: 1.6 }) : scrollTo({ top: 0 }))
+    },
+    {
+      group: 'Actions', label: 'Copy email address', hint: CONTACT_EMAIL, keywords: ['mail', 'contact'],
+      run: async () => toast((await copyText(CONTACT_EMAIL)) ? 'Email copied to clipboard' : CONTACT_EMAIL)
+    },
+    {
+      group: 'Actions', label: 'Send a message', hint: 'form', keywords: ['contact', 'hire', 'email'],
+      run: () => {
+        wakeBackend();
+        goTo(document.querySelector('[data-contact-form]'));
+        setTimeout(() => document.querySelector('[data-contact-form] input[name="name"]')?.focus({ preventScroll: true }), 1300);
+      }
+    },
+    {
+      group: 'Actions', label: 'Download CV', hint: 'PDF', keywords: ['resume', 'cv', 'pdf'],
+      run: () => {
+        const a = document.createElement('a');
+        a.href = '/Shreyas_Resume.pdf';
+        a.download = 'Shreyas_Resume.pdf';
+        a.click();
+      }
+    },
+    {
+      group: 'Actions',
+      label: () => (theme.current === 'dark' ? 'Switch to day view' : 'Switch to night view'),
+      hint: 'theme', keywords: ['theme', 'dark', 'light', 'mode'],
+      run: () => theme.toggle()
+    },
+    ...projects.map((p) => ({
+      group: 'Projects',
+      label: p.name,
+      hint: p.links.live ? 'live ↗' : 'github ↗',
+      keywords: [...p.tech, p.award ? 'award' : ''],
+      run: open(p.links.live || p.links.github)
+    })),
+    { group: 'Elsewhere', label: 'GitHub', hint: '↗', keywords: ['code', 'repos'], run: open('https://github.com/shreyascode11') },
+    { group: 'Elsewhere', label: 'LinkedIn', hint: '↗', keywords: ['profile', 'connect'], run: open('https://www.linkedin.com/in/shreyas1102/') },
+    { group: 'Elsewhere', label: 'Instagram', hint: '↗', keywords: ['social'], run: open('https://www.instagram.com/_shreyassrivas_/') },
+    { group: 'Elsewhere', label: 'View this site’s source', hint: '↗', keywords: ['code', 'repo', 'github'], run: open('https://github.com/shreyascode11/shreyas-portfolio') }
+  ];
+  return commands;
+}
+
 // Console easter egg — developers always look.
 function signConsole() {
   try {
@@ -216,25 +369,84 @@ function signConsole() {
 }
 
 // ---------------------------------------------------------------------
-// Contact form → n8n webhook. Any 2xx counts as success; on failure we
-// keep the user's text and point them at the mailto fallback.
+// Contact form → n8n webhook, self-hosted on a free Render instance.
 //
-// Self-hosted on a free Render instance, which spins down after idle —
-// the first request after a quiet period can take 30-50s to wake it,
-// so the timeout is generous and the status message says so past 8s.
+// Free Render boxes sleep after ~15 min idle and take 30-45s to wake
+// (and can crash-loop under memory pressure), so the form is built to
+// never lose a message:
+//   1. Pre-wake: when the contact section approaches (or a field is
+//      focused) we ping /healthz so the box is usually warm by the time
+//      someone hits Send.
+//   2. One safe retry: only when the first attempt fails *fast* — that
+//      means Render's edge rejected it (502/503, no CORS headers), so
+//      the workflow never ran and a retry can't send a duplicate.
+//   3. Fallback: after 12s a "send by email" button appears, pre-filled
+//      with everything they typed; on final failure it becomes the main
+//      action. The form is never cleared unless the send succeeded.
 // ---------------------------------------------------------------------
-const N8N_WEBHOOK_URL =
-  'https://shreyas-n8n.onrender.com/webhook/portfolio-contact';
+const N8N_BASE = 'https://shreyas-n8n.onrender.com';
+const N8N_WEBHOOK_URL = `${N8N_BASE}/webhook/portfolio-contact`;
+const CONTACT_EMAIL = 'shreoriginal@gmail.com';
+
+let lastWake = 0;
+/** Fire-and-forget ping to wake the Render instance (max every 5 min). */
+function wakeBackend() {
+  if (Date.now() - lastWake < 5 * 60_000) return;
+  lastWake = Date.now();
+  fetch(`${N8N_BASE}/healthz`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+}
+
+/** One POST with its own timeout; rejects on network error, timeout or non-2xx. */
+async function postContact(data, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function mailtoFor({ name = '', email = '', message = '' }) {
+  const subject = `Portfolio message${name ? ` from ${name}` : ''}`;
+  const body = `${message}\n\n— ${name}${email ? ` (${email})` : ''}`;
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 function initContactForm() {
   const form = document.querySelector('[data-contact-form]');
   if (!form) return;
   const status = form.querySelector('[data-form-status]');
   const button = form.querySelector('button[type="submit"]');
+  const fallback = form.querySelector('[data-form-fallback]');
+  const setStatus = (text, kind = '') => {
+    status.className = `cform__status mono${kind ? ` is-${kind}` : ''}`;
+    status.textContent = text;
+  };
+  const showFallback = (data, primary = false) => {
+    fallback.href = mailtoFor(data);
+    fallback.hidden = false;
+    fallback.classList.toggle('btn--fill', primary);
+  };
+
+  // Pre-wake as the visitor heads toward the form, or starts typing
+  const section = document.querySelector('#contact');
+  if (section) {
+    new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) wakeBackend(); },
+      { rootMargin: '100% 0px' } // one viewport ahead of arrival
+    ).observe(section);
+  }
+  form.addEventListener('focusin', wakeBackend);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     if (!form.reportValidity()) return;
 
     const data = Object.fromEntries(new FormData(form).entries());
@@ -246,37 +458,102 @@ function initContactForm() {
     }
 
     button.disabled = true;
-    status.className = 'cform__status mono';
-    status.textContent = 'Sending…';
-    // Free-tier host may be asleep — reassure rather than let it look stuck
-    const wakingHint = setTimeout(() => {
-      status.textContent = 'Still sending — waking up the server…';
-    }, 8000);
+    fallback.hidden = true;
+    setStatus('Sending…');
+    const hints = [
+      setTimeout(() => setStatus('Still sending — waking up the server…'), 8000),
+      setTimeout(() => showFallback(data), 12000)
+    ];
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 55000);
-      const res = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      status.classList.add('is-ok');
-      status.textContent = 'Message sent — I’ll reply soon.';
+      const started = Date.now();
+      try {
+        await postContact(data, 45000);
+      } catch (err) {
+        // Fast failure = rejected at Render's edge, workflow never ran →
+        // safe to retry once. A timeout might have been processed late,
+        // so we don't risk a duplicate there.
+        if (err.name === 'AbortError' || Date.now() - started > 15000) throw err;
+        setStatus('Server was asleep — retrying…');
+        wakeBackend();
+        await new Promise((r) => setTimeout(r, 3000));
+        await postContact(data, 40000);
+      }
+      setStatus('Message sent — I’ll reply soon.', 'ok');
+      fallback.hidden = true;
       form.reset();
     } catch (err) {
       console.error('Contact form failed:', err);
-      status.classList.add('is-error');
-      status.textContent = 'Something broke — use the email link below.';
+      setStatus('Couldn’t reach the server — your message is still here.', 'error');
+      showFallback(data, true);
     } finally {
-      clearTimeout(wakingHint);
+      hints.forEach(clearTimeout);
       button.disabled = false;
     }
   });
+}
+
+/** "Start a project" CTAs: drop into the on-site form with a head start. */
+const PREFILL = {
+  website: 'Hi Shreyas — I’d like to build a website. Here’s what I have in mind: ',
+  ai: 'Hi Shreyas — I’m exploring an AI feature or agent for my product. The idea: '
+};
+function initPrefillCTAs(goTo) {
+  const form = document.querySelector('[data-contact-form]');
+  const message = form?.querySelector('textarea[name="message"]');
+  const name = form?.querySelector('input[name="name"]');
+  if (!message) return;
+  document.querySelectorAll('[data-prefill]').forEach((cta) => {
+    cta.addEventListener('click', (e) => {
+      e.preventDefault();
+      wakeBackend();
+      // Don't clobber something the visitor already wrote
+      const isTemplate = !message.value.trim() || Object.values(PREFILL).includes(message.value);
+      if (isTemplate) message.value = PREFILL[cta.dataset.prefill] ?? '';
+      goTo(form);
+      setTimeout(() => (name.value ? message : name).focus({ preventScroll: true }), 1300);
+    });
+  });
+}
+
+// ---------------------------------------------------------------------
+// Render the Stack section. Chips render immediately (name + an empty
+// icon slot) so reveals and layout are stable; the ~15 KB of brand
+// icon paths load in their own chunk and fade in when they arrive.
+// ---------------------------------------------------------------------
+function renderStack() {
+  const list = document.querySelector('[data-stack-list]');
+  if (!list) return;
+  list.innerHTML = stack
+    .map((pillar, i) => `
+      <li class="pillar" data-reveal>
+        <span class="pillar__index mono">${String(i + 1).padStart(2, '0')}</span>
+        <div class="pillar__head">
+          <h3 class="pillar__title">${pillar.title}</h3>
+          <p class="pillar__note mono">${pillar.note} · ${pillar.items.length}</p>
+        </div>
+        <ul class="pillar__items">
+          ${pillar.items.map((item) => `
+            <li class="chip">
+              <span class="chip__icon" ${item.icon ? `data-icon="${item.icon}"` : ''} aria-hidden="true">${
+                item.mono ? `<span class="chip__mono">${item.mono}</span>` : ''
+              }</span>
+              <span class="chip__name">${item.name}</span>
+            </li>`).join('')}
+        </ul>
+      </li>`)
+    .join('');
+
+  import('./data/icons.js')
+    .then(({ icons }) => {
+      list.querySelectorAll('[data-icon]').forEach((slot) => {
+        const d = icons[slot.dataset.icon];
+        if (!d) return;
+        slot.innerHTML = `<svg viewBox="0 0 24 24" focusable="false"><path d="${d}"/></svg>`;
+        slot.classList.add('is-loaded');
+      });
+    })
+    .catch(() => { /* names alone still read fine */ });
 }
 
 // ---------------------------------------------------------------------
@@ -291,8 +568,41 @@ function renderProfile() {
       <p class="timeline__desc">${item.desc}</p>
     </li>`;
 
+  // Several roles at one org render as a single entry with a nested
+  // role track (LinkedIn-style), so a promotion reads as a progression.
+  // Groups keep the order of each org's most recent role.
+  const groups = [];
+  const byOrg = new Map();
+  experience.forEach((item) => {
+    if (!byOrg.has(item.org)) {
+      const group = { org: item.org, roles: [] };
+      byOrg.set(item.org, group);
+      groups.push(group);
+    }
+    byOrg.get(item.org).roles.push(item);
+  });
+
+  const groupItem = ({ org, roles }) => {
+    if (roles.length === 1) return timelineItem(roles[0]);
+    const [from] = roles[roles.length - 1].period.split('—');
+    const to = roles[0].period.split('—')[1] ?? '';
+    return `
+      <li class="timeline__item timeline__item--group">
+        <h4 class="timeline__role">${org}</h4>
+        <span class="timeline__period mono">${from.trim()} — ${to.trim()} · ${roles.length} roles</span>
+        <ol class="timeline__roles">
+          ${roles.map((r) => `
+            <li class="timeline__step${/present$/i.test(r.period.trim()) ? ' is-current' : ''}">
+              <span class="timeline__step-role">${r.role}</span>
+              <span class="timeline__period mono">${r.period}</span>
+              <p class="timeline__desc">${r.desc}</p>
+            </li>`).join('')}
+        </ol>
+      </li>`;
+  };
+
   document.querySelector('[data-experience-list]').innerHTML =
-    experience.map(timelineItem).join('');
+    groups.map(groupItem).join('');
   document.querySelector('[data-education-list]').innerHTML =
     education.map(timelineItem).join('');
 
@@ -373,6 +683,7 @@ function startLocalClock() {
 
 async function boot() {
   renderProjects();
+  renderStack();
   renderProfile();
   initContactForm();
   startLocalClock();
@@ -382,7 +693,7 @@ async function boot() {
 
   // Day/night toggle — applied before GL init so textures pick the
   // right palette; later switches propagate via the themechange event.
-  new Theme();
+  const theme = new Theme();
   window.addEventListener('themechange', (e) => {
     hero?.setTheme(e.detail.theme);
     distortion?.setTheme(e.detail.theme);
@@ -415,6 +726,7 @@ async function boot() {
       hero?.intro();
       if (!reducedMotion) {
         new Reveal();
+        initStats();
         // Scrub-linked scroll animation adds real per-tick cost — worth it
         // on a trackpad/mouse, but a common source of scroll jank on
         // phones, so touch gets a plain (still smooth) exit instead.
@@ -431,17 +743,33 @@ async function boot() {
   // Smooth scroll everywhere except reduced motion (native scroll there)
   const smoothScroll = reducedMotion ? null : new SmoothScroll();
   const transition = new PageTransition(smoothScroll);
-  new Nav(transition, smoothScroll, reducedMotion);
+  const nav = new Nav(transition, smoothScroll, reducedMotion);
   new Menu(smoothScroll);
+  const goTo = (el) => el && nav.goTo(el);
+
+  // ⌘K palette — pauses page scroll while open
+  new CommandPalette({
+    commands: buildCommands({ goTo, theme, smoothScroll }),
+    onOpen: () => smoothScroll?.stop(),
+    onClose: () => smoothScroll?.start()
+  });
+  initPrefillCTAs(goTo);
+  initProgress();
+  initWordmark();
 
   const cursor = !isTouch && !reducedMotion ? new Cursor() : null;
   const heroParallax =
     !isTouch && !reducedMotion ? createHeroParallax() : null;
+  // Hover-driven / per-frame flourishes stay off touch devices, in line
+  // with the rest of the motion layer (mobile scroll stays cheap)
+  const marqueeVelocity =
+    !isTouch && !reducedMotion ? createMarqueeVelocity(smoothScroll) : null;
+  if (!isTouch) initScramble();
   signConsole();
 
   // Only render GL scenes while their sections are (nearly) on screen —
   // no reason to burn GPU at the footer. Marquee pauses offscreen too.
-  const visible = { hero: true, work: true };
+  const visible = { hero: true, work: true, marquee: true };
   const watch = (selector, onChange) => {
     const el = document.querySelector(selector);
     if (!el) return;
@@ -452,9 +780,10 @@ async function boot() {
   };
   watch('#hero', (v) => (visible.hero = v));
   watch('#work', (v) => (visible.work = v));
-  watch('.marquee', (v) =>
-    document.querySelector('.marquee__track')?.classList.toggle('is-paused', !v)
-  );
+  watch('.marquee', (v) => {
+    visible.marquee = v;
+    document.querySelector('.marquee__track')?.classList.toggle('is-paused', !v);
+  });
 
   // ------ single shared render loop ------
   gsap.ticker.add((time) => {
@@ -462,6 +791,7 @@ async function boot() {
       hero?.update(time);
       heroParallax?.();
     }
+    if (visible.marquee) marqueeVelocity?.();
     if (visible.work) distortion?.update(time);
     cursor?.update();
   });

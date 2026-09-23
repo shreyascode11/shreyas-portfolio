@@ -5,16 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shreyas — AI &amp; Full-Stack Engineer</title>
   <meta name="description" content="Shreyas builds AI systems that live in the real world — agentic AI, RAG systems and full-stack engineering." />
+  <meta name="author" content="Shreyas" />
+  <link rel="canonical" href="https://shreyas-portfolio-virid.vercel.app/" />
+
+  <!-- Icons / install -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#0e0e0c" />
+
+  <!-- Social cards -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Shreyas — Portfolio" />
   <meta property="og:title" content="Shreyas — AI &amp; Full-Stack Engineer" />
   <meta property="og:description" content="I build AI systems that live in the real world." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23FF4B00'/></svg>" />
-  <meta name="theme-color" content="#0e0e0c" />
-  <meta property="og:type" content="website" />
   <meta property="og:url" content="https://shreyas-portfolio-virid.vercel.app/" />
   <meta property="og:image" content="https://shreyas-portfolio-virid.vercel.app/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Shreyas — AI &amp; Full-Stack Engineer" />
+  <meta name="twitter:description" content="I build AI systems that live in the real world." />
   <meta name="twitter:image" content="https://shreyas-portfolio-virid.vercel.app/og.png" />
-  <link rel="canonical" href="https://shreyas-portfolio-virid.vercel.app/" />
+
+  <!-- Structured data: lets search engines show a proper result for
+       "Shreyas" — role, school, links, awards. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://shreyas-portfolio-virid.vercel.app/#person",
+        "name": "Shreyas",
+        "url": "https://shreyas-portfolio-virid.vercel.app/",
+        "image": "https://shreyas-portfolio-virid.vercel.app/og.png",
+        "email": "mailto:shreoriginal@gmail.com",
+        "jobTitle": "Full-Stack & AI Developer",
+        "address": { "@type": "PostalAddress", "addressLocality": "Chennai", "addressCountry": "IN" },
+        "alumniOf": { "@type": "CollegeOrUniversity", "name": "SRM Institute of Science and Technology" },
+        "memberOf": { "@type": "Organization", "name": "SRM Insider Community" },
+        "knowsAbout": ["Agentic AI", "Retrieval-Augmented Generation", "LangGraph", "Model Context Protocol", "React", "Next.js", "FastAPI", "Three.js", "WebGL", "AWS"],
+        "award": [
+          "1st Place — NitroStack × MCP To The Moon Buildathon (2026)",
+          "Best Project — SRM Insider Community (2026)",
+          "2nd Runner-Up — The Last Commit: Agentic AI Hackathon (2026)"
+        ],
+        "sameAs": [
+          "https://github.com/shreyascode11",
+          "https://www.linkedin.com/in/shreyas1102/",
+          "https://www.instagram.com/_shreyassrivas_/"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://shreyas-portfolio-virid.vercel.app/#website",
+        "url": "https://shreyas-portfolio-virid.vercel.app/",
+        "name": "Shreyas — Portfolio",
+        "author": { "@id": "https://shreyas-portfolio-virid.vercel.app/#person" }
+      }
+    ]
+  }
+  </script>
 
   <!-- Apply the saved theme before first paint (prevents a wrong-theme
        flash). localStorage can throw in strict privacy modes — ignore. -->
@@ -25,10 +77,10 @@
     } catch (e) {}
   </script>
 
-  <!-- Type: Space Grotesk (display/body) + Space Mono (labels/meta) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Type: Space Grotesk (display/body) + Space Mono (labels/meta),
+       self-hosted — @font-face lives in tokens.css -->
+  <link rel="preload" href="/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/space-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin />
 
   <link rel="stylesheet" href="/src/styles/tokens.css" />
   <link rel="stylesheet" href="/src/styles/main.css" />
@@ -48,18 +100,36 @@
   <!-- Custom cursor (hidden on touch devices via JS + CSS) -->
   <div class="cursor" data-cursor aria-hidden="true"></div>
 
+  <!-- Reading progress (scaled from main.js) -->
+  <div class="progress" aria-hidden="true"><span class="progress__bar" data-progress></span></div>
+
   <!-- ======================= NAV ======================= -->
   <header class="nav" data-nav>
     <a class="nav__logo mono" href="#hero" data-nav-link>Shreyas<sup>&reg;</sup></a>
     <nav class="nav__links" aria-label="Primary">
-      <a class="nav__link mono" href="#work" data-nav-link>Work</a>
-      <a class="nav__link mono" href="#stack" data-nav-link>Stack</a>
-      <a class="nav__link mono" href="#journey" data-nav-link>Journey</a>
-      <a class="nav__link mono" href="#freelance" data-nav-link>Freelance</a>
-      <a class="nav__link mono" href="#contact" data-nav-link>Contact</a>
+      <a class="nav__link mono" href="#work" data-nav-link data-scramble>Work</a>
+      <a class="nav__link mono" href="#stack" data-nav-link data-scramble>Stack</a>
+      <a class="nav__link mono" href="#journey" data-nav-link data-scramble>Journey</a>
+      <a class="nav__link mono" href="#freelance" data-nav-link data-scramble>Freelance</a>
+      <a class="nav__link mono" href="#contact" data-nav-link data-scramble>Contact</a>
     </nav>
     <div class="nav__actions">
-      <button class="nav__theme" data-theme-toggle aria-label="Switch to day view">☀</button>
+      <!-- Command palette trigger (label becomes "Ctrl K" off-Mac) -->
+      <button class="nav__cmd mono" data-cmdk-open aria-label="Open command menu" aria-haspopup="dialog">
+        <kbd data-cmdk-mod>⌘</kbd><kbd>K</kbd>
+      </button>
+      <button class="nav__theme" data-theme-toggle aria-label="Switch to day view">
+        <!-- Sun shows in night view (click → day), moon in day view -->
+        <svg class="nav__theme-icon nav__theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/>
+          </g>
+        </svg>
+        <svg class="nav__theme-icon nav__theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a.6.6 0 0 0-.78-.73A9.4 9.4 0 1 0 20.93 15.4a.6.6 0 0 0-.73-.78Z"/>
+        </svg>
+      </button>
       <button class="nav__burger" data-menu-toggle aria-label="Open menu" aria-expanded="false" aria-controls="menu">
         <span class="nav__burger-bar"></span>
         <span class="nav__burger-bar"></span>
@@ -108,9 +178,11 @@
       <div class="marquee__track">
         <div class="marquee__group">
           <span>React</span><i>&#10022;</i>
+          <span>Next.js</span><i>&#10022;</i>
           <span>Three.js</span><i>&#10022;</i>
           <span>FastAPI</span><i>&#10022;</i>
           <span>LangGraph</span><i>&#10022;</i>
+          <span>MCP</span><i>&#10022;</i>
           <span>RAG</span><i>&#10022;</i>
           <span>Python</span><i>&#10022;</i>
           <span>PostgreSQL</span><i>&#10022;</i>
@@ -118,14 +190,17 @@
           <span>Groq</span><i>&#10022;</i>
           <span>WebGL</span><i>&#10022;</i>
           <span>Node.js</span><i>&#10022;</i>
+          <span>n8n</span><i>&#10022;</i>
           <span>Tailwind CSS</span><i>&#10022;</i>
           <span>Vercel</span><i>&#10022;</i>
         </div>
-        <div class="marquee__group">
+        <div class="marquee__group" aria-hidden="true">
           <span>React</span><i>&#10022;</i>
+          <span>Next.js</span><i>&#10022;</i>
           <span>Three.js</span><i>&#10022;</i>
           <span>FastAPI</span><i>&#10022;</i>
           <span>LangGraph</span><i>&#10022;</i>
+          <span>MCP</span><i>&#10022;</i>
           <span>RAG</span><i>&#10022;</i>
           <span>Python</span><i>&#10022;</i>
           <span>PostgreSQL</span><i>&#10022;</i>
@@ -133,6 +208,7 @@
           <span>Groq</span><i>&#10022;</i>
           <span>WebGL</span><i>&#10022;</i>
           <span>Node.js</span><i>&#10022;</i>
+          <span>n8n</span><i>&#10022;</i>
           <span>Tailwind CSS</span><i>&#10022;</i>
           <span>Vercel</span><i>&#10022;</i>
         </div>
@@ -156,29 +232,35 @@
             integrate them into high-performance React and FastAPI products.
             Whether architecting cloud-deployed civic-tech platforms or
             engineering WebGL experiences like this one, the focus is the same:
-            clean, scalable software that ships. At the SRM Insider Community,
-            I bridge web development and cloud infrastructure to put powerful
-            tools into production.
+            clean, scalable software that ships. At the SRM Insider Community
+            I lead the web domain and work on the cloud team, putting tools
+            into production across both.
           </p>
-          <p class="about__detail mono" data-reveal>Full-Stack &amp; AI Developer · SRM Insider Community — Web + Cloud</p>
+          <p class="about__detail mono" data-reveal>Web Dev Lead + Cloud · SRM Insider Community · Chennai, IN</p>
           <ul class="about__focus" data-reveal>
             <li><span class="about__focus-label mono">01 · AI Engineering</span><span class="about__focus-desc">Agents · RAG · Vision</span></li>
             <li><span class="about__focus-label mono">02 · Web Development</span><span class="about__focus-desc">React · FastAPI · Three.js / WebGL</span></li>
             <li><span class="about__focus-label mono">03 · Cloud &amp; Deployment</span><span class="about__focus-desc">AWS · Vercel · Render · PostgreSQL</span></li>
           </ul>
         </div>
+        <!-- Numbers count up on scroll (main.js initStats); the HTML holds
+             the final values so no-JS / reduced-motion still reads right -->
         <div class="stats">
           <div class="stat" data-reveal>
-            <span class="stat__num">04</span>
+            <span class="stat__num">1<i>st</i></span>
+            <span class="stat__label mono">of 806 · NitroStack × MCP Buildathon</span>
+          </div>
+          <div class="stat" data-reveal>
+            <span class="stat__num" data-count="5" data-pad="2">05</span>
             <span class="stat__label mono">Projects shipped</span>
           </div>
           <div class="stat" data-reveal>
-            <span class="stat__num">02</span>
-            <span class="stat__label mono">SRM Insiders domains — Web + Cloud</span>
+            <span class="stat__num" data-count="4" data-pad="2">04</span>
+            <span class="stat__label mono">Awards &amp; top placements</span>
           </div>
           <div class="stat" data-reveal>
-            <span class="stat__num">10<i>+</i></span>
-            <span class="stat__label mono">Technologies in production</span>
+            <span class="stat__num" data-count="9.57" data-decimals="2">9.57</span>
+            <span class="stat__label mono">SGPA · B.Tech CSE (Cloud)</span>
           </div>
         </div>
       </div>
@@ -203,36 +285,8 @@
           <h2 class="section__index mono">03 — Stack</h2>
           <span class="section__rule"></span>
         </header>
-        <ul class="pillars">
-          <li class="pillar" data-reveal>
-            <span class="pillar__index mono">01</span>
-            <h3 class="pillar__title">AI &amp; Machine Learning</h3>
-            <ul class="pillar__items">
-              <li>LangChain</li><li>LangGraph</li><li>RAG</li><li>MCP</li><li>XGBoost</li><li>SHAP</li><li>Groq Vision</li><li>Ollama</li>
-            </ul>
-          </li>
-          <li class="pillar" data-reveal>
-            <span class="pillar__index mono">02</span>
-            <h3 class="pillar__title">Backend &amp; Languages</h3>
-            <ul class="pillar__items">
-              <li>Python</li><li>TypeScript</li><li>C</li><li>C++</li><li>Java</li><li>FastAPI</li><li>Node.js</li><li>WebSockets</li>
-            </ul>
-          </li>
-          <li class="pillar" data-reveal>
-            <span class="pillar__index mono">03</span>
-            <h3 class="pillar__title">Frontend</h3>
-            <ul class="pillar__items">
-              <li>React</li><li>Next.js</li><li>Three.js / WebGL</li><li>GSAP</li><li>Vite</li><li>Tailwind CSS</li>
-            </ul>
-          </li>
-          <li class="pillar" data-reveal>
-            <span class="pillar__index mono">04</span>
-            <h3 class="pillar__title">Cloud, Data &amp; Tooling</h3>
-            <ul class="pillar__items">
-              <li>PostgreSQL</li><li>Redis</li><li>AWS</li><li>Vercel</li><li>Render</li><li>Railway</li><li>Docker</li><li>CI/CD (GitHub Actions)</li><li>n8n</li><li>Postman</li><li>Git</li><li>GitHub</li>
-            </ul>
-          </li>
-        </ul>
+        <!-- Pillars + icon chips are rendered from /src/data/stack.js -->
+        <ul class="pillars" data-stack-list></ul>
       </div>
     </section>
 
@@ -263,7 +317,7 @@
     <section class="section freelance" id="freelance">
       <div class="container">
         <header class="section__head" data-reveal>
-          <span class="section__index mono">05 — Freelance</span>
+          <h2 class="section__index mono">05 — Freelance</h2>
           <span class="section__rule"></span>
         </header>
         <p class="freelance__lead" data-split-lines>
@@ -285,7 +339,7 @@
               <li>3D / WebGL experiences</li>
               <li>Deployment, domains &amp; upkeep</li>
             </ul>
-            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=Website%20project" data-hover>Start a project ↗</a>
+            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=Website%20project" data-prefill="website" data-hover>Start a project →</a>
           </article>
           <article class="service" data-reveal>
             <span class="service__index mono">B</span>
@@ -301,7 +355,7 @@
               <li>AI vision &amp; automation</li>
               <li>LLM integration into existing apps</li>
             </ul>
-            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=AI%20project" data-hover>Start a project ↗</a>
+            <a class="service__cta mono" href="mailto:shreoriginal@gmail.com?subject=AI%20project" data-prefill="ai" data-hover>Start a project →</a>
           </article>
         </div>
       </div>
@@ -323,14 +377,14 @@
     <section class="section contact" id="contact">
       <div class="container">
         <header class="section__head" data-reveal>
-          <span class="section__index mono">07 — Contact</span>
+          <h2 class="section__index mono">07 — Contact</h2>
           <span class="section__rule"></span>
         </header>
         <p class="contact__badge mono" data-reveal>
           <span class="contact__dot" aria-hidden="true"></span>
           Open to internships · freelance · collaborations
         </p>
-        <h2 class="contact__title" data-split>Let's build something.</h2>
+        <h3 class="contact__title" data-split>Let's build something.</h3>
         <p class="contact__note" data-reveal>
           A website, an AI agent, or something in between — if it's ambitious,
           I want to hear about it. One email is all it takes.
@@ -357,6 +411,9 @@
             <button class="btn btn--fill" type="submit" data-hover>Send message</button>
             <span class="cform__status mono" data-form-status aria-live="polite"></span>
           </div>
+          <!-- Shown only if the form backend is unreachable: opens the
+               visitor's mail app with everything they typed pre-filled -->
+          <a class="btn cform__fallback" data-form-fallback href="mailto:shreoriginal@gmail.com" hidden>Send it by email instead ↗</a>
           <p class="cform__alt mono">Prefer email? <a href="mailto:shreoriginal@gmail.com?subject=Let%27s%20build%20something" data-hover>shreoriginal@gmail.com ↗</a></p>
         </form>
 
@@ -366,8 +423,11 @@
           <a class="btn" href="https://www.linkedin.com/in/shreyas1102/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
           <a class="btn" href="https://www.instagram.com/_shreyassrivas_/" target="_blank" rel="noopener noreferrer">Instagram ↗</a>
         </div>
+        <!-- Closing wordmark — sized to the container width in main.js -->
+        <div class="wordmark" aria-hidden="true"><span class="wordmark__text" data-wordmark>SHREYAS</span></div>
+
         <footer class="footer">
-          <span class="mono">© 2026 Shreyas</span>
+          <span class="mono">© 2026 Shreyas · <a class="footer__src" href="https://github.com/shreyascode11/shreyas-portfolio" target="_blank" rel="noopener noreferrer" data-hover>Source ↗</a></span>
           <span class="mono footer__time" data-local-time>Chennai, IN</span>
           <button class="footer__top mono" data-back-to-top data-hover>Back to top ↑</button>
         </footer>
