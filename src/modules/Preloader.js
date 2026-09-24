@@ -1,7 +1,7 @@
 // =====================================================================
 // Preloader — fullscreen intro: counter 0→100 + name reveal, then a
 // slide-up exit. The counter runs to ~90 on a fixed timeline, then
-// waits for `readyPromise` (WebGL assets / fonts) before snapping to
+// waits for `readyPromise` (fonts, plus WebGL for a capped time) before snapping to
 // 100 and exiting — so it never lies about progress but also never
 // hangs at 3% on a slow connection.
 // =====================================================================
@@ -40,19 +40,21 @@ export class Preloader {
       this.counterEl.textContent = Math.round(counter.value);
     };
 
+    // Kept brisk (~1.2s): every moment the curtain is up is a moment the
+    // page isn't visible.
     const intro = gsap.timeline();
     intro.to(this.nameEl.querySelectorAll('.char'), {
       y: 0,
-      duration: 1,
+      duration: 0.8,
       ease: 'power3.out',
-      stagger: 0.045
+      stagger: 0.04
     });
     intro.to(counter, {
       value: 90,
-      duration: 1.6,
+      duration: 1.1,
       ease: 'power2.inOut',
       onUpdate: setCounter
-    }, 0.2);
+    }, 0.1);
 
     return new Promise((resolve) => {
       // Wait for both the intro timeline AND real asset readiness
@@ -63,7 +65,7 @@ export class Preloader {
         const exit = gsap.timeline({ onComplete: resolve });
         exit.to(counter, {
           value: 100,
-          duration: 0.3,
+          duration: 0.25,
           ease: 'power1.out',
           onUpdate: setCounter
         });
@@ -73,9 +75,9 @@ export class Preloader {
         });
         exit.to(this.el, {
           yPercent: -100,
-          duration: 1,
+          duration: 0.9,
           ease: 'power4.inOut'
-        }, '+=0.15');
+        }, '+=0.1');
         exit.set(this.el, { display: 'none' });
         this.el.classList.add('is-done');
       });

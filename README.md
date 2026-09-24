@@ -68,7 +68,8 @@ src/
 
 Notable engineering details:
 
-- **Three.js is lazy-loaded behind the preloader** — the initial bundle is ~55 KB gzipped; the 3D chunk streams in while the loading counter runs.
+- **Three.js is lazy-loaded behind the preloader** — it starts only after first paint and its shaders compile while the counter runs; the preloader never waits on it for more than ~1.6s. CSS is inlined into the HTML at build time, so the first frame needs no extra request.
+- **Responsive, modern images** — thumbnails ship as AVIF → WebP → JPEG at 480/800/1200w (≈10–40 KB instead of 120–200 KB); brand icons load only as the Stack section approaches.
 - **GL scenes render only while visible.** IntersectionObservers gate the hero and thumbnail scenes; the marquee pauses offscreen.
 - **Split-text animations are screen-reader safe** — the real text remains in the accessibility tree while the animated per-character copy is `aria-hidden`.
 - **Graceful degradation at every layer**: no WebGL → static gradient; lost GPU context → fallback swap; blocked `localStorage` → ignored; `prefers-reduced-motion` → native scroll, no animation, static hero.

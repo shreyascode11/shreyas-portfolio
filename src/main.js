@@ -4,7 +4,7 @@
 // Boot order:
 //   1. Detect capabilities (touch / reduced motion / WebGL)
 //   2. Render project rows from /src/data/projects.js
-//   3. Start the preloader; init WebGL behind it (hero + distortion)
+//   3. Start the preloader; init WebGL behind it after first paint
 //   4. On preloader exit: reveals, smooth scroll, cursor, transitions
 //   5. Single gsap.ticker loop drives Lenis + both GL scenes + cursor
 // =====================================================================
@@ -51,9 +51,65 @@ function supportsWebGL() {
 const useHeroGL = !reducedMotion && supportsWebGL();
 const useDistortion = useHeroGL && !isTouch;
 
+// Longest the preloader will hold for WebGL, measured from boot. The
+// preloader's own intro runs about 1.2s.
+const GL_WAIT_MS = 1600;
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Resolves after the page has loaded its critical resources and painted
+// a frame. Capped, so one stalled request can't hold everything back.
+function afterFirstPaint() {
+  const loaded =
+    document.readyState === 'complete'
+      ? Promise.resolve()
+      : new Promise((r) => window.addEventListener('load', r, { once: true }));
+  return Promise.race([loaded, wait(2500)]).then(
+    () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)))
+  );
+}
+
+// Resolves when `el` comes within `rootMargin` of the viewport, or a few
+// seconds after first paint once the browser is idle, whichever is first.
+function whenNear(el, rootMargin) {
+  return new Promise((resolve) => {
+    const io = new IntersectionObserver(
+      (entries) => entries.some((e) => e.isIntersecting) && done(),
+      { rootMargin }
+    );
+    const done = () => {
+      io.disconnect();
+      resolve();
+    };
+    io.observe(el);
+    const idle = (cb) =>
+      'requestIdleCallback' in window ? requestIdleCallback(cb) : setTimeout(cb, 0);
+    afterFirstPaint().then(() => wait(3000)).then(() => idle(done));
+  });
+}
+
 // ---------------------------------------------------------------------
 // Render the Work section from data.
 // ---------------------------------------------------------------------
+// Responsive thumbnails: each project JPEG ships with AVIF and WebP
+// siblings at these widths (name-480.avif …). The media column is at
+// most 30rem wide on desktop and spans the container under 900px.
+const THUMB_WIDTHS = [480, 800, 1200];
+const THUMB_SIZES = '(max-width: 900px) 92vw, 480px';
+
+function thumbnail(p) {
+  const alt = `${p.name} — project preview`;
+  const base = p.image.replace(/\.jpe?g$/i, '');
+  const attrs = `alt="${alt}" loading="lazy" decoding="async" width="1200" height="900"`;
+  if (base === p.image) return `<img src="${p.image}" ${attrs} />`;
+  const srcset = (ext) => THUMB_WIDTHS.map((w) => `${base}-${w}.${ext} ${w}w`).join(', ');
+  return `<picture>
+      <source type="image/avif" srcset="${srcset('avif')}" sizes="${THUMB_SIZES}" />
+      <source type="image/webp" srcset="${srcset('webp')}" sizes="${THUMB_SIZES}" />
+      <img src="${p.image}" data-gl-src="${base}-1200.webp" ${attrs} />
+    </picture>`;
+}
+
 function renderProjects() {
   const list = document.querySelector('[data-work-list]');
 
@@ -116,7 +172,7 @@ function renderProjects() {
                 ? `<video src="${p.video}" muted loop playsinline preload="auto"
                      ${reducedMotion ? '' : 'autoplay'}
                      aria-label="${p.name} — project preview"></video>`
-                : `<img src="${p.image}" alt="${p.name} — project preview" loading="lazy" decoding="async" width="1024" height="768" />`;
+                : thumbnail(p);
               const href = p.links.live || p.links.github;
               return href
                 ? `<a class="project__media" href="${href}" target="_blank" rel="noopener noreferrer" data-hover data-cursor-label="View" data-name="${p.name}" aria-label="Open ${p.name}">${media}</a>`
@@ -144,13 +200,14 @@ function renderProjects() {
 // Experience layer: hero scroll-exit, statement mouse-parallax and
 // magnetic buttons. Desktop + full-motion only (guarded at call site).
 // ---------------------------------------------------------------------
-function initHeroScroll(hero) {
+// `getHero` is a getter because the GL scene may arrive after this runs.
+function initHeroScroll(getHero) {
   const scrollTrigger = {
     trigger: '#hero',
     start: 'top top',
     end: 'bottom top',
     scrub: true,
-    onUpdate: (self) => hero?.setScrollProgress(self.progress)
+    onUpdate: (self) => getHero()?.setScrollProgress(self.progress)
   };
   // Statement exits slower than the scroll (classic depth trick);
   // the aside drifts faster, like a nearer layer.
@@ -371,15 +428,17 @@ function signConsole() {
 // ---------------------------------------------------------------------
 // Contact form → n8n webhook, self-hosted on a free Render instance.
 //
-// Free Render boxes sleep after ~15 min idle and take 30-45s to wake
-// (and can crash-loop under memory pressure), so the form is built to
-// never lose a message:
-//   1. Pre-wake: when the contact section approaches (or a field is
-//      focused) we ping /healthz so the box is usually warm by the time
-//      someone hits Send.
-//   2. One safe retry: only when the first attempt fails *fast* — that
-//      means Render's edge rejected it (502/503, no CORS headers), so
-//      the workflow never ran and a retry can't send a duplicate.
+// Free Render boxes sleep after ~15 min idle and take 30-60s to boot.
+// While booting, Render's edge rejects requests instantly (502/503/429,
+// without CORS headers, so fetch just throws). The form is built to
+// ride that out and never lose a message:
+//   1. Pre-wake: ping /healthz a few seconds after the page loads, again
+//      as the contact section approaches and when a field is focused —
+//      visitors read for well over a minute, so the box is usually warm.
+//   2. Retry through the boot window: attempts that fail *fast* were
+//      rejected before the workflow ran, so they're retried with growing
+//      gaps (~60s in total) and can't send a duplicate. An attempt that
+//      fails slowly might have been processed, so it's never retried.
 //   3. Fallback: after 12s a "send by email" button appears, pre-filled
 //      with everything they typed; on final failure it becomes the main
 //      action. The form is never cleared unless the send succeeded.
@@ -387,6 +446,9 @@ function signConsole() {
 const N8N_BASE = 'https://shreyas-n8n.onrender.com';
 const N8N_WEBHOOK_URL = `${N8N_BASE}/webhook/portfolio-contact`;
 const CONTACT_EMAIL = 'shreoriginal@gmail.com';
+// Gaps between retries of fast-failing sends — ~60s total, enough to
+// cover a Render cold boot
+const RETRY_DELAYS = [3000, 5000, 8000, 12000, 15000, 18000];
 
 let lastWake = 0;
 /** Fire-and-forget ping to wake the Render instance (max every 5 min). */
@@ -435,7 +497,9 @@ function initContactForm() {
     fallback.classList.toggle('btn--fill', primary);
   };
 
-  // Pre-wake as the visitor heads toward the form, or starts typing
+  // Pre-wake shortly after load (visitors read long before reaching the
+  // form), again as they head toward it, and when they start typing
+  setTimeout(wakeBackend, 3000);
   const section = document.querySelector('#contact');
   if (section) {
     new IntersectionObserver(
@@ -460,24 +524,27 @@ function initContactForm() {
     button.disabled = true;
     fallback.hidden = true;
     setStatus('Sending…');
-    const hints = [
-      setTimeout(() => setStatus('Still sending — waking up the server…'), 8000),
-      setTimeout(() => showFallback(data), 12000)
-    ];
+    const fallbackHint = setTimeout(() => showFallback(data), 12000);
 
     try {
-      const started = Date.now();
-      try {
-        await postContact(data, 45000);
-      } catch (err) {
-        // Fast failure = rejected at Render's edge, workflow never ran →
-        // safe to retry once. A timeout might have been processed late,
-        // so we don't risk a duplicate there.
-        if (err.name === 'AbortError' || Date.now() - started > 15000) throw err;
-        setStatus('Server was asleep — retrying…');
-        wakeBackend();
-        await new Promise((r) => setTimeout(r, 3000));
-        await postContact(data, 40000);
+      for (let attempt = 0; ; attempt++) {
+        const started = Date.now();
+        // A single slow attempt usually means Render is holding the
+        // request while it boots — say so rather than look stuck
+        const slowHint = setTimeout(() => setStatus('Still sending — the server is waking up…'), 8000);
+        let error = null;
+        try {
+          await postContact(data, 45000);
+        } catch (err) {
+          error = err;
+        } finally {
+          clearTimeout(slowHint); // before any retry wait, or it fires mid-sleep
+        }
+        if (!error) break;
+        const fast = error.name !== 'AbortError' && Date.now() - started < 15000;
+        if (!fast || attempt >= RETRY_DELAYS.length) throw error;
+        setStatus(`Server is waking up — retrying (${attempt + 1}/${RETRY_DELAYS.length})…`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
       }
       setStatus('Message sent — I’ll reply soon.', 'ok');
       fallback.hidden = true;
@@ -487,7 +554,7 @@ function initContactForm() {
       setStatus('Couldn’t reach the server — your message is still here.', 'error');
       showFallback(data, true);
     } finally {
-      hints.forEach(clearTimeout);
+      clearTimeout(fallbackHint);
       button.disabled = false;
     }
   });
@@ -544,7 +611,10 @@ function renderStack() {
       </li>`)
     .join('');
 
-  import('./data/icons.js')
+  // Brand icons aren't needed until the section is close — fetch them
+  // then (or when the browser is idle) rather than during first load.
+  whenNear(list, '100% 0px')
+    .then(() => import('./data/icons.js'))
     .then(({ icons }) => {
       list.querySelectorAll('[data-icon]').forEach((slot) => {
         const d = icons[slot.dataset.icon];
@@ -621,7 +691,7 @@ function renderProfile() {
     .map((c) => {
       const inner = `
         <span class="cert__issuer mono">${c.issuer}</span>
-        <h4 class="cert__name">${c.name}</h4>
+        <h3 class="cert__name">${c.name}</h3>
         <span class="cert__period mono">${c.period}</span>
         <p class="cert__desc">${c.desc}</p>
         ${c.url ? '<span class="cert__view mono">View certificate ↗</span>' : ''}`;
@@ -635,13 +705,13 @@ function renderProfile() {
 // If a placeholder image 404s and WebGL isn't handling thumbnails,
 // swap the broken <img> for a generated gradient so nothing looks broken.
 async function installImageFallbacks() {
-  const { makePlaceholder } = await import('./gl/placeholder.js');
+  const { makePlaceholder, setPlaceholderSrc } = await import('./gl/placeholder.js');
   const failed = new Set();
   const nameOf = (img) => img.closest('.project__media')?.dataset.name || '';
   const swap = (img, i) => {
     failed.add(i);
     const theme = document.documentElement.dataset.theme || 'light';
-    img.src = makePlaceholder(i, theme, nameOf(img)).toDataURL('image/jpeg', 0.85);
+    setPlaceholderSrc(img, makePlaceholder(i, theme, nameOf(img)).toDataURL('image/jpeg', 0.85));
   };
 
   const imgs = document.querySelectorAll('.project__media img');
@@ -690,6 +760,7 @@ async function boot() {
 
   let hero = null;
   let distortion = null;
+  let curtainUp = false; // preloader has exited
 
   // Day/night toggle — applied before GL init so textures pick the
   // right palette; later switches propagate via the themechange event.
@@ -699,22 +770,32 @@ async function boot() {
     distortion?.setTheme(e.detail.theme);
   });
 
-  // Everything the preloader should wait for goes into this promise.
+  // WebGL (three.js ~175 KB gz + shader compiles) starts only after first
+  // paint, so it never competes with the fonts and main chunk. The
+  // preloader covers the gap.
   // A GL failure must never strand the preloader — fall back gracefully.
-  const glReady = initGL().then(
-    (gl) => {
-      hero = gl.hero;
-      distortion = gl.distortion;
-    },
-    (err) => {
-      console.error('WebGL init failed, using fallbacks:', err);
-      document.querySelector('[data-hero-gl]').classList.add('is-fallback');
-      installImageFallbacks();
-    }
-  );
+  const glReady = afterFirstPaint()
+    .then(initGL)
+    .then(
+      (gl) => {
+        hero = gl.hero;
+        distortion = gl.distortion;
+        // Slow network: the curtain already lifted without it, so the
+        // blob plays its entrance on arrival instead.
+        if (curtainUp) hero?.intro();
+      },
+      (err) => {
+        console.error('WebGL init failed, using fallbacks:', err);
+        document.querySelector('[data-hero-gl]').classList.add('is-fallback');
+        installImageFallbacks();
+      }
+    );
+  // The preloader waits for the fonts, and waits for WebGL only up to
+  // GL_WAIT_MS after boot. On a typical connection the blob still rises
+  // with the curtain; a slow three.js download never holds the page back.
   const readyPromise = Promise.all([
     document.fonts?.ready ?? Promise.resolve(),
-    glReady
+    Promise.race([glReady, wait(GL_WAIT_MS)])
   ]);
 
   // Reveals are constructed on preloader exit so hero elements animate
@@ -723,6 +804,7 @@ async function boot() {
     readyPromise,
     reducedMotion,
     onExit: () => {
+      curtainUp = true;
       hero?.intro();
       if (!reducedMotion) {
         new Reveal();
@@ -731,7 +813,7 @@ async function boot() {
         // on a trackpad/mouse, but a common source of scroll jank on
         // phones, so touch gets a plain (still smooth) exit instead.
         if (!isTouch) {
-          initHeroScroll(hero);
+          initHeroScroll(() => hero);
           initMagnetic();
         }
       }
@@ -788,7 +870,9 @@ async function boot() {
   // ------ single shared render loop ------
   gsap.ticker.add((time) => {
     if (visible.hero) {
-      hero?.update(time);
+      // Nothing to draw behind the opaque preloader; shaders were
+      // already compiled in initGL, so the first real frame is cheap.
+      if (curtainUp) hero?.update(time);
       heroParallax?.();
     }
     if (visible.marquee) marqueeVelocity?.();
@@ -814,7 +898,7 @@ async function boot() {
 
 /**
  * Lazily import and init the heavy WebGL pieces (kept out of the main
- * chunk so first paint — the preloader — is instant). Falls back to a
+ * chunk and started after first paint — see boot()). Falls back to a
  * static gradient hero when GL is off.
  */
 async function initGL() {
@@ -827,44 +911,30 @@ async function initGL() {
     return { hero: null, distortion: null };
   }
 
-  const [{ Hero }, { ImageDistortion }, { LoadingManager }] = await Promise.all([
+  const [{ Hero }, distortionModule] = await Promise.all([
     import('./gl/Hero.js'),
-    import('./gl/ImageDistortion.js'),
-    import('three')
+    useDistortion ? import('./gl/ImageDistortion.js') : null
   ]);
-  const loadingManager = new LoadingManager();
 
   const hero = new Hero(heroContainer, isTouch ? 'low' : 'high');
   // Theme was applied before GL init — sync the blob's palette to it
   hero.setTheme(document.documentElement.dataset.theme || 'light');
+  // Compile shaders now, behind the preloader, so the first visible
+  // frame doesn't hitch
+  await hero.compile();
 
   if (!useDistortion) {
-    // Plain <img> thumbnails on touch — still need placeholder fallbacks,
-    // and there are no textures to wait for.
+    // Plain <img> thumbnails on touch — still need placeholder fallbacks.
     installImageFallbacks();
     return { hero, distortion: null };
   }
 
-  const distortion = new ImageDistortion(
+  // Thumbnails sit below the fold, so nothing waits on their textures.
+  // Each <img> stays visible until its texture is ready (see ImageDistortion).
+  const distortion = new distortionModule.ImageDistortion(
     distortionCanvas,
-    document.querySelectorAll('.project__media'),
-    loadingManager
+    document.querySelectorAll('.project__media')
   );
-
-  // Resolve when every texture registered with the manager settles
-  // (missing placeholder images resolve via onError → generated gradient).
-  await new Promise((resolve) => {
-    let settled = false;
-    const done = () => {
-      if (!settled) {
-        settled = true;
-        resolve();
-      }
-    };
-    loadingManager.onLoad = done;
-    // Safety net: never block the preloader more than 4s on textures
-    setTimeout(done, 4000);
-  });
 
   return { hero, distortion };
 }

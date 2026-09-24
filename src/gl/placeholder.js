@@ -11,6 +11,13 @@
 // expensive part) on the main thread every switch.
 const cache = new Map();
 
+// Point an <img> at a placeholder data URL. Inside <picture> the
+// <source> candidates would win over src, so drop them first.
+export function setPlaceholderSrc(img, src) {
+  img.closest('picture')?.querySelectorAll('source').forEach((s) => s.remove());
+  img.src = src;
+}
+
 export function makePlaceholder(index, theme = 'light', label = '') {
   const key = `${index}|${theme}|${label}`;
   if (cache.has(key)) return cache.get(key);

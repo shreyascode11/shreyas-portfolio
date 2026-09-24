@@ -150,6 +150,11 @@ export class Hero {
     this.particleMaterial.opacity = palette.pOpacity;
   }
 
+  /** Compile shaders ahead of the first visible frame. */
+  compile() {
+    return this.gl.compile(this.scene, this.camera);
+  }
+
   /** Intro reveal, played when the preloader exits. */
   intro() {
     gsap.to(this.uniforms.uReveal, { value: 1, duration: 1.6, ease: 'power3.out' });

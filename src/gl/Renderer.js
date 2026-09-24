@@ -42,6 +42,11 @@ export class Renderer {
     this.renderer.render(scene, camera);
   }
 
+  /** Compile every material up front (parallel where the GPU supports it). */
+  compile(scene, camera) {
+    return this.renderer.compileAsync(scene, camera);
+  }
+
   dispose() {
     this.renderer.dispose();
     this.renderer.domElement.remove();

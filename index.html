@@ -78,10 +78,11 @@
   </script>
 
   <!-- Type: Space Grotesk (display/body) + Space Mono (labels/meta),
-       self-hosted — @font-face lives in tokens.css -->
-  <link rel="preload" href="/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="/fonts/space-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin />
-
+       self-hosted — @font-face lives in tokens.css. No font preloads:
+       the build inlines this CSS, so the fonts are discovered with the
+       HTML anyway, and with preloads Chrome's first paint landed ~2s
+       later in Lighthouse's mobile profile. The preloader waits for
+       document.fonts.ready before it reveals the page. -->
   <link rel="stylesheet" href="/src/styles/tokens.css" />
   <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
@@ -115,8 +116,9 @@
     </nav>
     <div class="nav__actions">
       <!-- Command palette trigger (label becomes "Ctrl K" off-Mac) -->
-      <button class="nav__cmd mono" data-cmdk-open aria-label="Open command menu" aria-haspopup="dialog">
-        <kbd data-cmdk-mod>⌘</kbd><kbd>K</kbd>
+      <button class="nav__cmd mono" data-cmdk-open aria-haspopup="dialog">
+        <span class="sr-only">Open command menu</span>
+        <kbd data-cmdk-mod aria-hidden="true">⌘</kbd><kbd aria-hidden="true">K</kbd>
       </button>
       <button class="nav__theme" data-theme-toggle aria-label="Switch to day view">
         <!-- Sun shows in night view (click → day), moon in day view -->

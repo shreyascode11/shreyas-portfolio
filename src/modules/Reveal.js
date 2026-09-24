@@ -100,11 +100,15 @@ export class Reveal {
     });
   }
 
+  // Blocks fade with plain opacity, never visibility:hidden. Unrevealed
+  // content stays in the accessibility tree and stays keyboard-focusable,
+  // so screen-reader heading navigation and Tab don't skip whole sections
+  // below the fold.
   initBlocks() {
     document.querySelectorAll('[data-reveal]').forEach((el) => {
       gsap.from(el, {
         y: 40,
-        autoAlpha: 0,
+        opacity: 0,
         duration: 1,
         ease: 'power3.out',
         scrollTrigger: { trigger: el, start: 'top 88%' }
@@ -115,7 +119,7 @@ export class Reveal {
     document.querySelectorAll('.project').forEach((el) => {
       gsap.from(el, {
         y: 70,
-        autoAlpha: 0,
+        opacity: 0,
         duration: 1.1,
         ease: 'power3.out',
         scrollTrigger: { trigger: el, start: 'top 90%' }

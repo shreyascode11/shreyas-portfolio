@@ -13,14 +13,14 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Renderer, disposeScene } from './Renderer.js';
-import { makePlaceholder } from './placeholder.js';
+import { makePlaceholder, setPlaceholderSrc } from './placeholder.js';
 import { distortionVertex, distortionFragment } from '../shaders/distortion.js';
 
 export class ImageDistortion {
   /**
    * @param {HTMLCanvasElement} canvas the fixed fullscreen canvas
    * @param {NodeListOf<Element>} mediaEls .project__media elements
-   * @param {THREE.LoadingManager} loadingManager shared with the preloader
+   * @param {THREE.LoadingManager} [loadingManager] optional load tracking
    */
   constructor(canvas, mediaEls, loadingManager) {
     this.gl = new Renderer({ canvas, alpha: true });
@@ -100,9 +100,11 @@ export class ImageDistortion {
       return;
     }
 
-    // Try the real image; fall back to a generated gradient placeholder
+    // Try the real image; fall back to a generated gradient placeholder.
+    // data-gl-src is a fixed large WebP, so the texture stays sharp
+    // whatever size the responsive <img> picked for itself.
     this.loader.load(
-      img.src,
+      img.dataset.glSrc || img.currentSrc || img.src,
       applyTexture,
       undefined,
       () => {
@@ -112,7 +114,7 @@ export class ImageDistortion {
         const placeholder = makePlaceholder(index, theme, el.dataset.name || '');
         applyTexture(new THREE.CanvasTexture(placeholder));
         // Also swap the DOM img so non-GL fallbacks look right too
-        img.src = placeholder.toDataURL('image/jpeg', 0.85);
+        setPlaceholderSrc(img, placeholder.toDataURL('image/jpeg', 0.85));
       }
     );
 
