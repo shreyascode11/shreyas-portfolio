@@ -14,8 +14,8 @@
 //   both     click / tap it for a line (and a "hide me" option)
 //
 // Manners — company, not a nuisance:
-//   • says hello on the first visit only, and makes at most a few
-//     comments per visit, well spaced, never while someone is typing
+//   • chatty but never over itself: remarks on sections, projects and
+//     what you do, spaced apart, and never while someone is typing
 //   • fades out of the way while a form field has focus, while the
 //     menu / ⌘K palette is open, and when the pointer is going for a
 //     link or button that Pip happens to be standing on
@@ -29,8 +29,9 @@
 const SIZE = 72;
 const KEY_ENABLED = 'companion';
 const KEY_MET = 'companion-met';
-const AUTO_LINES_PER_VISIT = 3;
-const AUTO_LINE_GAP_MS = 25000;
+const SPOT_GAP_MS = 8000;      // between scroll-triggered remarks
+const IDLE_CHAT_MS = [14000, 24000]; // between idle thoughts
+const MIN_BUBBLE_GAP_MS = 2500; // so lines never pile on each other
 
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -78,10 +79,13 @@ export class Companion {
    * @param {boolean} o.reducedMotion
    * @param {Array<{el: Element, text: string}>} o.spots  may say once in view
    * @param {string[]} o.pokeLines  random lines when clicked
-   * @param {string} [o.greeting]   first visit only
+   * @param {string} [o.greeting]   first visit
+   * @param {string} [o.welcomeBack] later visits
+   * @param {string[]} [o.idleLines] thoughts while the visitor pauses
    * @param {(on:boolean)=>void} [o.onToggle]
    */
-  constructor({ isTouch, reducedMotion, spots = [], pokeLines = [], greeting, onToggle }) {
+  constructor({ isTouch, reducedMotion, spots = [], pokeLines = [], idleLines = [], greeting, welcomeBack, onToggle }) {
+    this.idleLines = idleLines;
     this.isTouch = isTouch;
     this.still = reducedMotion;
     this.pokeLines = pokeLines;
@@ -133,17 +137,20 @@ export class Companion {
     this.lastScrollHop = 0;
     this.lastBoil = 0;
     this.seed = 1;
-    this.autoLines = 0;
-    this.lastAutoLine = -Infinity;
+    this.lastSpotLine = -Infinity;
+    this.lastBubble = -Infinity;
+    this.nextIdleChat = performance.now() + rand(...IDLE_CHAT_MS);
+    this.idleIndex = Math.floor(Math.random() * 100);
 
     this.bindEvents();
     this.watchSpots(spots);
     this.applyEnabled({ silent: true });
 
-    // Hello once, ever — not on every visit
-    if (this.enabled && greeting && !store.get(KEY_MET)) {
+    // Hello on the first visit, welcome back after that
+    if (this.enabled) {
+      const line = store.get(KEY_MET) ? welcomeBack : greeting;
       store.set(KEY_MET, '1');
-      setTimeout(() => this.say(greeting, 3400), 900);
+      if (line) setTimeout(() => this.say(line, 3400), 900);
     }
   }
 
@@ -161,7 +168,10 @@ export class Companion {
         this.pointer = { x: e.clientX, y: e.clientY };
         const t = e.target instanceof Element ? e.target : null;
         this.overClickable = !!t && !this.el.contains(t) && !!t.closest(CLICKABLE);
-        if (this.mode === 'sleep') this.hopV = 3; // a little start on waking
+        if (this.mode === 'sleep') {
+          this.hopV = 3; // a little start on waking
+          this.react('Oh! You’re back.');
+        }
         this.mode = 'follow';
         this.lastPointerMove = performance.now();
       }, { passive: true });
@@ -182,24 +192,35 @@ export class Companion {
     this.el.querySelector('.pip__hide').addEventListener('click', () => this.setEnabled(false));
   }
 
-  /** May say a line when a spot reaches mid-screen — rationed, never chatty. */
+  /** Says a line (once each) as sections / projects reach mid-screen. */
   watchSpots(spots) {
     if (!spots.length) return;
     const lines = new Map(spots.map((s) => [s.el, s.text]));
     const io = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting || entry.target.hidden) continue;
-        if (this.autoLines >= AUTO_LINES_PER_VISIT) { io.disconnect(); return; }
         const now = performance.now();
-        if (now - this.lastAutoLine < AUTO_LINE_GAP_MS || this.shy || this.isBusy()) continue;
+        if (now - this.lastSpotLine < SPOT_GAP_MS) continue; // will catch the next one
+        if (!this.react(lines.get(entry.target), 3400)) continue;
         io.unobserve(entry.target);
-        this.autoLines++;
-        this.lastAutoLine = now;
-        this.say(lines.get(entry.target), 3200);
+        this.lastSpotLine = now;
         this.waveUntil = now + 900;
       }
     }, { rootMargin: '-38% 0px -38% 0px' });
     spots.forEach((s) => s.el && io.observe(s.el));
+  }
+
+  /**
+   * A remark Pip makes on its own (not when poked): skipped while the
+   * visitor types or has the menu / palette open, and never on top of a
+   * line that's still showing. Returns whether it was said.
+   */
+  react(text, ms = 3000) {
+    const now = performance.now();
+    if (!this.enabled || !text || this.shy || this.isBusy()) return false;
+    if (now - this.lastBubble < MIN_BUBBLE_GAP_MS || this.bubble.classList.contains('is-on')) return false;
+    this.say(text, ms);
+    return true;
   }
 
   /** Something else has the visitor's attention (menu, palette). */
@@ -210,6 +231,7 @@ export class Companion {
   say(text, ms = 3200, { hideOption = false } = {}) {
     if (!this.enabled || !text) return;
     this.text.textContent = text;
+    this.lastBubble = performance.now();
     this.bubble.classList.toggle('has-hide', hideOption);
     this.bubble.classList.add('is-on');
     this.talkUntil = performance.now() + Math.min(ms, 1500);
@@ -265,6 +287,7 @@ export class Companion {
     const idle = now - this.lastPointerMove;
     if (idle > 30000 && this.mode !== 'sleep') {
       this.mode = 'sleep';
+      this.react('I’ll just… rest my eyes. z z z', 2800);
     } else if (idle > 5000 && this.mode === 'follow') {
       this.mode = 'wander';
       this.nextWander = 0;
@@ -296,6 +319,17 @@ export class Companion {
     if (!this.enabled) return;
     const now = performance.now();
     this.chooseTarget(now);
+
+    // Idle thoughts while the visitor reads (desktop: pointer resting;
+    // touch: just every so often)
+    if (this.idleLines.length && now > this.nextIdleChat && this.mode !== 'sleep') {
+      const resting = this.isTouch || now - this.lastPointerMove > 4000;
+      if (resting && this.react(this.idleLines[this.idleIndex++ % this.idleLines.length], 3200)) {
+        this.nextIdleChat = now + rand(...IDLE_CHAT_MS);
+      } else {
+        this.nextIdleChat = now + 3000; // try again shortly
+      }
+    }
 
     // Out of the way: typing, menu / palette open, or the pointer is
     // going for a link or button Pip is standing on

@@ -126,6 +126,9 @@ const slugOf = (p) =>
 
 const KIND_LABELS = { ai: 'AI', web: 'Web', '3d': '3D' };
 
+/** Tell Pip something happened (no-op until Pip has loaded). */
+const pipSay = (kind, detail) => window.dispatchEvent(new CustomEvent('pip', { detail: { kind, detail } }));
+
 /** Before → after strip, e.g. Lighthouse scores vs. the site it replaced. */
 function metricsStrip(metrics) {
   if (!metrics?.length) return '';
@@ -229,7 +232,10 @@ function renderProjects() {
       const url = new URL(location.href);
       url.search = '';
       url.hash = share.closest('.project').id;
-      copyText(url.href).then((ok) => toast(ok ? 'Project link copied' : url.href));
+      copyText(url.href).then((ok) => {
+        toast(ok ? 'Project link copied' : url.href);
+        if (ok) pipSay('copied');
+      });
     }
   });
 
@@ -496,7 +502,11 @@ function buildCommands({ goTo, theme, smoothScroll, companion }) {
     },
     {
       group: 'Actions', label: 'Copy email address', hint: CONTACT_EMAIL, keywords: ['mail', 'contact'],
-      run: async () => toast((await copyText(CONTACT_EMAIL)) ? 'Email copied to clipboard' : CONTACT_EMAIL)
+      run: async () => {
+        const ok = await copyText(CONTACT_EMAIL);
+        toast(ok ? 'Email copied to clipboard' : CONTACT_EMAIL);
+        if (ok) pipSay('email');
+      }
     },
     {
       group: 'Actions', label: 'Send a message', hint: 'form', keywords: ['contact', 'hire', 'email'],
@@ -548,7 +558,11 @@ function buildCommands({ goTo, theme, smoothScroll, companion }) {
     },
     {
       group: 'Actions', label: 'Copy link to this page', hint: 'share', keywords: ['url', 'share', 'link'],
-      run: async () => toast((await copyText(location.href)) ? 'Link copied' : location.href)
+      run: async () => {
+        const ok = await copyText(location.href);
+        toast(ok ? 'Link copied' : location.href);
+        if (ok) pipSay('copied');
+      }
     },
     { group: 'Elsewhere', label: 'GitHub', hint: '↗', keywords: ['code', 'repos'], run: open('https://github.com/shreyascode11') },
     { group: 'Elsewhere', label: 'LinkedIn', hint: '↗', keywords: ['profile', 'connect'], run: open('https://www.linkedin.com/in/shreyas1102/') },
@@ -695,11 +709,13 @@ function initContactForm() {
         await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
       }
       setStatus('Message sent — I’ll reply soon.', 'ok');
+      pipSay('sent');
       fallback.hidden = true;
       form.reset();
     } catch (err) {
       console.error('Contact form failed:', err);
       setStatus('Couldn’t reach the server — your message is still here.', 'error');
+      pipSay('failed');
       showFallback(data, true);
     } finally {
       clearTimeout(fallbackHint);
@@ -1139,12 +1155,29 @@ function setupOrbit(goTo, onReady) {
 async function setupCompanion() {
   const { Companion } = await import('./modules/Companion.js');
   const at = (sel) => document.querySelector(sel);
-  // A few gentle remarks; Companion rations them (max 3, well apart)
+  // A line for each section and project as it reaches mid-screen
+  // (once each, spaced out by Companion)
+  const projectLines = {
+    'srm-redesign': 'This one has a whole campus you can walk around!',
+    aegis: '1st place out of 806. No big deal.',
+    domain: 'A game where CSS bugs are actual holes. Mind the gap!',
+    ecoscan: 'AI checks every cleanup photo. No faking it.',
+    'insider-agent': 'It only answers from the real manuals. No making stuff up.',
+    'the-last-ceo': 'Best Project award on this one ★'
+  };
   const spots = [
+    [at('#about'), 'That’s him. He builds AI that actually ships.'],
+    [at('.stats'), '9.57 SGPA. I’m a doodle and even I’m impressed.'],
     [at('[data-orbit]:not([hidden])') ?? at('.work__bar'), isTouch ? 'Psst — swipe the ring. Go on.' : 'Psst — drag the ring. Go on.'],
-    [at('#project-srm-redesign'), 'This one has a whole campus you can walk around!'],
-    [at('#project-aegis'), '1st place out of 806. No big deal.'],
+    [at('.work__bar'), 'Filter by AI, Web or 3D up here.'],
+    ...projects.map((p) => [
+      document.getElementById(`project-${slugOf(p)}`),
+      projectLines[slugOf(p)] ?? (p.award ? `★ ${p.award.split(' — ')[0]}!` : `${p.name} — open “More +” for the story.`)
+    ]),
+    [at('#stack'), 'So. Many. Logos.'],
     [at('#journey'), 'Member to Web Dev Lead in four months!'],
+    [at('#freelance'), 'He’s taking on projects — just saying.'],
+    [at('#certifications'), 'Shiny things ✨'],
     [at('#contact'), 'Say hi! He replies, I’ve seen it.']
   ]
     .filter(([el]) => el)
@@ -1166,6 +1199,17 @@ async function setupCompanion() {
       toast(on ? 'Pip is back' : `Pip is napping — ${isTouch ? 'the menu' : '⌘K'} brings Pip back`);
     },
     greeting: 'Hi! I’m Pip. I’ll tag along.',
+    welcomeBack: 'Welcome back! I kept your spot warm.',
+    idleLines: [
+      'Take your time. I’m not going anywhere.',
+      'Fun fact: the blob up top is pure shader math.',
+      isTouch ? 'The menu has his CV, by the way.' : 'Tip: ⌘K jumps anywhere on the page.',
+      'Every project has its own link. Fancy, right?',
+      'Try the ☀ button. I look good in both.',
+      'I was drawn in one stroke. Mostly.',
+      'Psst… the contact form actually works.',
+      'Reading carefully? I like that.'
+    ],
     pokeLines: [
       'Hi! I’m Pip, a doodle.',
       isTouch ? 'The menu has his CV, by the way.' : 'Press ⌘K — it knows every shortcut.',
@@ -1178,6 +1222,28 @@ async function setupCompanion() {
   });
   syncMenu(pip.enabled);
   menuToggle?.addEventListener('click', () => pip.toggle());
+
+  // Reactions to what the visitor does
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const reactions = {
+    copied: ['Copied! Share it around.', 'Link’s on your clipboard ✓'],
+    email: ['Email copied. Go on, say hi!'],
+    sent: ['Sent! He’ll get back to you soon.', 'Message delivered ✉'],
+    failed: ['Uh oh — the server’s waking up. Try the email button?'],
+    filter: { all: 'Everything, all at once.', ai: 'AI only? Good taste.', web: 'The web stuff. Classic.', '3d': '3D! My kind of thing.' },
+    orbit: ['Wheee! Spin it again.', 'Round and round it goes.']
+  };
+  window.addEventListener('pip', (e) => {
+    const line = reactions[e.detail.kind];
+    if (line) pip.react(Array.isArray(line) ? pick(line) : line);
+  });
+  window.addEventListener('themechange', (e) =>
+    pip.react(e.detail.theme === 'dark' ? 'Ooh, night mode.' : 'Lights on! Nice.'));
+  window.addEventListener('workfilter', (e) => pip.react(reactions.filter[e.detail.kind]));
+  let spun = 0;
+  document.querySelector('[data-orbit-stage]')?.addEventListener('pointerdown', () => {
+    if (spun++ % 3 === 0) setTimeout(() => pip.react(pick(reactions.orbit)), 700);
+  });
   return pip;
 }
 
