@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shreyas — AI &amp; Full-Stack Engineer</title>
-  <meta name="description" content="Shreyas builds AI systems that live in the real world — agentic AI, RAG systems and full-stack engineering." />
+  <meta name="description" content="Shreyas builds AI systems that live in the real world — agentic AI, RAG systems, 3D web experiences and full-stack engineering. Projects include Level Up at SRM, Aegis and Domain." />
   <meta name="author" content="Shreyas" />
   <link rel="canonical" href="https://shreyas-portfolio-virid.vercel.app/" />
 
@@ -45,7 +45,7 @@
         "address": { "@type": "PostalAddress", "addressLocality": "Chennai", "addressCountry": "IN" },
         "alumniOf": { "@type": "CollegeOrUniversity", "name": "SRM Institute of Science and Technology" },
         "memberOf": { "@type": "Organization", "name": "SRM Insider Community" },
-        "knowsAbout": ["Agentic AI", "Retrieval-Augmented Generation", "LangGraph", "Model Context Protocol", "React", "Next.js", "FastAPI", "Three.js", "WebGL", "AWS"],
+        "knowsAbout": ["Agentic AI", "Retrieval-Augmented Generation", "LangGraph", "Model Context Protocol", "React", "Next.js", "FastAPI", "Three.js", "React Three Fiber", "WebGL", "Web Accessibility", "AWS"],
         "award": [
           "1st Place — NitroStack × MCP To The Moon Buildathon (2026)",
           "Best Project — SRM Insider Community (2026)",
@@ -78,11 +78,13 @@
   </script>
 
   <!-- Type: Space Grotesk (display/body) + Space Mono (labels/meta),
-       self-hosted — @font-face lives in tokens.css. No font preloads:
-       the build inlines this CSS, so the fonts are discovered with the
-       HTML anyway, and with preloads Chrome's first paint landed ~2s
-       later in Lighthouse's mobile profile. The preloader waits for
-       document.fonts.ready before it reveals the page. -->
+       self-hosted — @font-face lives in tokens.css. The first frame (just
+       the preloader) paints with the system stack below; the web fonts
+       are switched on right after it (class "fonts-on", added by the
+       loader the build writes at the end of <body>, and by main.js), so
+       no font download sits in front of first paint. The preloader holds
+       the name back until the fonts have arrived. -->
+  <style>:root:not(.fonts-on){--font-display:'Helvetica Neue',Arial,sans-serif;--font-mono:Menlo,'SFMono-Regular',Consolas,monospace}</style>
   <link rel="stylesheet" href="/src/styles/tokens.css" />
   <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
@@ -146,9 +148,14 @@
       <a class="menu__link" href="#stack" data-nav-link data-menu-close>Stack</a>
       <a class="menu__link" href="#journey" data-nav-link data-menu-close>Journey</a>
       <a class="menu__link" href="#freelance" data-nav-link data-menu-close>Freelance</a>
+      <a class="menu__link" href="#certifications" data-nav-link data-menu-close>Awards</a>
       <a class="menu__link" href="#contact" data-nav-link data-menu-close>Contact</a>
     </nav>
-    <a class="menu__meta mono" href="mailto:shreoriginal@gmail.com">shreoriginal@gmail.com</a>
+    <div class="menu__foot">
+      <a class="btn" href="/Shreyas_Resume.pdf" download="Shreyas_Resume.pdf">Download CV ↓</a>
+      <a class="menu__meta mono" href="mailto:shreoriginal@gmail.com">shreoriginal@gmail.com</a>
+      <button class="menu__meta menu__pip mono" type="button" data-pip-toggle hidden>Hide Pip, the doodle</button>
+    </div>
   </div>
 
   <main id="main">
@@ -163,6 +170,12 @@
           <span class="hero__line hero__line--dim" data-split>that live in</span>
           <span class="hero__line hero__line--dim" data-split>the real world.</span>
         </h1>
+        <!-- Above-the-fold next steps: see the work, or get in touch -->
+        <div class="hero__cta" data-reveal>
+          <a class="btn btn--fill" href="#work" data-nav-link data-hover>See my work ↓</a>
+          <a class="btn" href="#contact" data-nav-link data-hover>Get in touch</a>
+          <span class="hero__status mono"><span class="contact__dot" aria-hidden="true"></span>Open to internships &amp; freelance</span>
+        </div>
       </div>
 
       <p class="hero__aside" data-reveal>
@@ -253,7 +266,7 @@
             <span class="stat__label mono">of 806 · NitroStack × MCP Buildathon</span>
           </div>
           <div class="stat" data-reveal>
-            <span class="stat__num" data-count="5" data-pad="2">05</span>
+            <span class="stat__num" data-count="6" data-pad="2" data-project-count>06</span>
             <span class="stat__label mono">Projects shipped</span>
           </div>
           <div class="stat" data-reveal>
@@ -275,6 +288,30 @@
           <h2 class="section__index mono">02 — Work</h2>
           <span class="section__rule"></span>
         </header>
+        <!-- 3D ring of project screens (src/gl/WorkOrbit.js). Shown only
+             where WebGL runs; the list below stays the source of truth.
+             The HUD is real DOM so it works with keyboard + readers. -->
+        <div class="orbit" data-orbit hidden>
+          <div class="orbit__stage" data-orbit-stage data-cursor-label="Drag" aria-hidden="true"></div>
+          <div class="orbit__hud">
+            <div class="orbit__caption" aria-live="polite">
+              <span class="orbit__count mono" data-orbit-count>01 / 06</span>
+              <p class="orbit__title" data-orbit-title></p>
+              <span class="orbit__meta mono" data-orbit-meta></span>
+            </div>
+            <div class="orbit__controls">
+              <button class="orbit__btn" type="button" data-orbit-prev aria-label="Previous project">←</button>
+              <a class="btn orbit__open" href="#work" data-orbit-open>View project</a>
+              <button class="orbit__btn" type="button" data-orbit-next aria-label="Next project">→</button>
+            </div>
+          </div>
+          <p class="orbit__hint mono" aria-hidden="true">Drag to spin · click the front screen</p>
+        </div>
+        <!-- Filter pills + count are built from each project's `kind` -->
+        <div class="work__bar" data-reveal>
+          <div class="work__filters" role="group" aria-label="Filter projects" data-work-filters></div>
+          <span class="work__status mono" data-work-status aria-live="polite"></span>
+        </div>
         <!-- Project rows are rendered from /src/data/projects.js -->
         <ul class="work__list" data-work-list></ul>
       </div>
@@ -436,6 +473,11 @@
       </div>
     </section>
   </main>
+
+  <!-- Floating back-to-top: appears once the visitor is well into the page -->
+  <button class="totop" data-back-to-top data-totop aria-label="Back to top" tabindex="-1">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
 
   <!-- Fullscreen transparent canvas for WebGL image hover distortion -->
   <canvas class="distortion-canvas" data-distortion-canvas aria-hidden="true"></canvas>

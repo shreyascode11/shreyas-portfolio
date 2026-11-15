@@ -7,10 +7,46 @@
 //   image: "/assets/projects/xxx.jpg"  → static thumbnail
 // If neither file exists, a generated cover card is used instead.
 // Order = display order (strongest first).
+//
+// Optional fields:
+//   slug     URL-safe id → each row is linkable at #project-<slug>
+//            (derived from `name` when omitted)
+//   kind     filter buckets for the Work section: "ai" | "web" | "3d"
+//   metrics  before → after strip: [{ label, before, after }]
+//   links.extra  more links beside Live / GitHub: [{ label, url }]
 // =====================================================================
 export const projects = [
   {
+    name: "Level Up at SRM",
+    slug: "srm-redesign",
+    year: "2026",
+    blurb: "A concept redesign of srmist.edu.in that turns a university site into something you play — your years at SRM become a character who levels up, the real campus becomes a 3D world you can walk, and every fee, date and ranking comes from SRM's own published data.",
+    role: "Lead Developer — Design & Build",
+    kind: ["web", "3d", "ai"],
+    why: "The official site is 10 MB, takes over 20 seconds to paint on a slow 4G phone, and buries the answers students and parents actually need — what a course really costs, which hostel, how to apply. The redesign keeps every fact, makes it 9× lighter, and adds the tools a first-time visitor is missing.",
+    features: [
+      "Walk SRM — the Kattankulathur campus rebuilt from OpenStreetMap as a toon-shaded open world: 40+ real places, 17 characters with 14 quests, a live-time clock tower, and peer-to-peer multiplayer over WebRTC with no game server",
+      "Ask SRM — an assistant grounded in SRM's published data, in English, Tamil and Hindi; AI search can only pick real programmes, and fees always come from the data, never the model",
+      "Full cost of every course (tuition, hostel, mess), Parent Mode, a three-way programme compare and a 3D hostel finder",
+      "Lite Mode and offline support via a hand-written service worker; WCAG 2.2 AA with zero axe-core violations and a strict Content-Security-Policy"
+    ],
+    metrics: [
+      { label: "Performance", before: "49", after: "94" },
+      { label: "Accessibility", before: "81", after: "100" },
+      { label: "Page weight", before: "10.1 MB", after: "1.1 MB" },
+      { label: "First paint · 4G", before: "21.8 s", after: "1.2 s" }
+    ],
+    tech: ["Next.js", "React", "TypeScript", "React Three Fiber", "GSAP", "next-intl", "WebRTC", "Tailwind CSS"],
+    links: {
+      live: "https://srm-redesign-one.vercel.app",
+      github: "https://github.com/shreyascode11/SRM-Redesign",
+      extra: [{ label: "Play Walk SRM", url: "https://srm-redesign-one.vercel.app/walk" }]
+    },
+    image: "/assets/projects/srm-redesign.jpg"
+  },
+  {
     name: "Aegis",
+    kind: ["ai"],
     year: "2026",
     blurb: "An MCP server that audits the 'blast radius' of AI agents — mapping their full capability graph across every connected tool, detecting toxic permission combinations, and auto-applying a policy fix before a dangerous connection ships to production.",
     role: "Team Lead — TeamX (team project)",
@@ -30,6 +66,7 @@ export const projects = [
   },
   {
     name: "Domain",
+    kind: ["web", "3d"],
     year: "2026",
     blurb: "A 3D platformer that teaches web development: every level is a real web page. Fix the HTML, CSS or JavaScript and the world rebuilds so you can walk across what you built — 120 lessons from a first tag to async JavaScript.",
     role: "Solo — Design & Build",
@@ -49,6 +86,7 @@ export const projects = [
   },
   {
     name: "EcoScan",
+    kind: ["ai", "web"],
     year: "2026",
     blurb: "AI-powered, real-time community waste-management platform. Citizens report waste spots on an interactive map; volunteers claim and clean them, and every cleanup is auto-verified by an AI vision model.",
     role: "Full-Stack Contributor (team project)",
@@ -68,6 +106,7 @@ export const projects = [
   },
   {
     name: "Insider-Agent",
+    kind: ["ai"],
     year: "2026",
     blurb: "An agentic RAG assistant that serves as the official AI for the SRM Insiders Club — answering questions about club policies, roles, and deadlines with responses grounded in the official club manuals.",
     role: "Solo — Design & Build",
@@ -87,6 +126,7 @@ export const projects = [
   },
   {
     name: "The-Last-CEO",
+    kind: ["ai", "web", "3d"],
     year: "2026",
     blurb: "An AI-powered business strategy simulator: lead a company through the AI revolution to 2035, with every quarterly boardroom decision scored by a live XGBoost prediction engine.",
     role: "Full-Stack & Data (team project)",

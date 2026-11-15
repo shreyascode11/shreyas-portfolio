@@ -14,7 +14,8 @@ export class Preloader {
    * @param {Function} [options.onExit] called as the exit animation starts
    * @param {boolean} [options.reducedMotion] skip animation, quick fade
    */
-  constructor({ readyPromise, onExit, reducedMotion = false }) {
+  constructor({ readyPromise, fontsReady, onExit, reducedMotion = false }) {
+    this.fontsReady = fontsReady ?? Promise.resolve();
     this.el = document.querySelector('.preloader');
     this.counterEl = this.el.querySelector('[data-preloader-counter]');
     this.nameEl = this.el.querySelector('[data-preloader-name]');
@@ -40,32 +41,36 @@ export class Preloader {
       this.counterEl.textContent = Math.round(counter.value);
     };
 
-    // Kept brisk (~1.2s): every moment the curtain is up is a moment the
-    // page isn't visible.
-    const intro = gsap.timeline();
-    intro.to(this.nameEl.querySelectorAll('.char'), {
-      y: 0,
-      duration: 0.8,
-      ease: 'power3.out',
-      stagger: 0.04
-    });
-    intro.to(counter, {
+    // Kept brisk (~0.8s): every moment the curtain is up is a moment the
+    // page isn't visible. The counter starts at once; the name waits for
+    // its font (capped) so it never rises in the fallback face.
+    const counted = new Promise((r) => gsap.to(counter, {
       value: 90,
-      duration: 1.1,
+      duration: 0.6,
       ease: 'power2.inOut',
-      onUpdate: setCounter
-    }, 0.1);
+      onUpdate: setCounter,
+      onComplete: r
+    }));
+    // Resolves once the name has *started* rising: the curtain can lift
+    // while the last letters settle, rather than after
+    const named = Promise.race([this.fontsReady, new Promise((r) => setTimeout(r, 450))])
+      .then(() => new Promise((r) => {
+        gsap.to(this.nameEl.querySelectorAll('.char'), {
+          y: 0,
+          duration: 0.5,
+          ease: 'power3.out',
+          stagger: 0.025
+        });
+        setTimeout(r, 300);
+      }));
 
     return new Promise((resolve) => {
-      // Wait for both the intro timeline AND real asset readiness
-      Promise.all([
-        new Promise((r) => intro.eventCallback('onComplete', r)),
-        this.readyPromise
-      ]).then(() => {
+      // Wait for both the intro AND real asset readiness
+      Promise.all([counted, named, this.readyPromise]).then(() => {
         const exit = gsap.timeline({ onComplete: resolve });
         exit.to(counter, {
           value: 100,
-          duration: 0.25,
+          duration: 0.1,
           ease: 'power1.out',
           onUpdate: setCounter
         });
@@ -75,9 +80,9 @@ export class Preloader {
         });
         exit.to(this.el, {
           yPercent: -100,
-          duration: 0.9,
+          duration: 0.6,
           ease: 'power4.inOut'
-        }, '+=0.1');
+        });
         exit.set(this.el, { display: 'none' });
         this.el.classList.add('is-done');
       });

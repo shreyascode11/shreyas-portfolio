@@ -48,15 +48,45 @@ function splitLines(el) {
   return el.querySelectorAll('.split-line > span');
 }
 
+// Splitting text and creating ScrollTriggers measures layout for every
+// word — done all at once it was one ~300ms main-thread task at the
+// moment the curtain lifts. Now only what's on (or just below) the
+// screen is set up immediately; everything further down is set up in
+// small batches while the browser is idle, nearest first, long before
+// a visitor can scroll to it.
+const idle = (cb) =>
+  'requestIdleCallback' in window
+    ? requestIdleCallback(cb, { timeout: 500 })
+    : setTimeout(() => cb({ timeRemaining: () => 8, didTimeout: false }), 16);
+
 export class Reveal {
   constructor() {
-    this.initSplitChars();
-    this.initSplitLines();
-    this.initBlocks();
+    const tasks = [
+      ...[...document.querySelectorAll('[data-split]')].map((el) => [el, () => this.splitChars(el)]),
+      ...[...document.querySelectorAll('[data-split-lines]')].map((el) => [el, () => this.splitLinesOf(el)]),
+      ...[...document.querySelectorAll('[data-reveal]')].map((el) => [el, () => this.block(el)]),
+      ...[...document.querySelectorAll('.project')].map((el) => [el, () => this.projectRow(el)])
+    ]
+      .map(([el, run]) => ({ el, run, top: el.getBoundingClientRect().top }))
+      .sort((a, b) => a.top - b.top);
+
+    const fold = window.innerHeight * 1.25;
+    const later = [];
+    for (const t of tasks) (t.top < fold ? t.run() : later.push(t));
+
+    const pump = (deadline) => {
+      while (later.length && (deadline.timeRemaining() > 6 || deadline.didTimeout)) {
+        later.shift().run();
+        if (deadline.didTimeout) break; // one per forced slice, stay short
+      }
+      if (later.length) idle(pump);
+      else ScrollTrigger.refresh();
+    };
+    if (later.length) idle(pump);
   }
 
-  initSplitChars() {
-    document.querySelectorAll('[data-split]').forEach((el) => {
+  splitChars(el) {
+    {
       const text = el.textContent.trim();
       // Each char gets its own overflow-hidden mask so multi-line
       // headings clip per character. Chars are grouped into .word
@@ -77,26 +107,24 @@ export class Reveal {
       const chars = el.querySelectorAll('.char');
       gsap.from(chars, {
         yPercent: 115,
-        duration: 1.1,
+        duration: 0.8,
         ease: 'power4.out',
-        // Cap the total stagger spread at ~1s so long statements don't
-        // take forever to finish revealing.
-        stagger: Math.min(0.035, 1 / chars.length),
+        // Cap the total stagger spread at ~0.6s so long statements finish
+        // revealing quickly.
+        stagger: Math.min(0.035, 0.45 / chars.length),
         scrollTrigger: { trigger: el, start: 'top 88%' }
       });
-    });
+    }
   }
 
-  initSplitLines() {
-    document.querySelectorAll('[data-split-lines]').forEach((el) => {
-      const lines = splitLines(el);
-      gsap.from(lines, {
-        yPercent: 110,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.09,
-        scrollTrigger: { trigger: el, start: 'top 85%' }
-      });
+  splitLinesOf(el) {
+    const lines = splitLines(el);
+    gsap.from(lines, {
+      yPercent: 110,
+      duration: 1,
+      ease: 'power3.out',
+      stagger: 0.09,
+      scrollTrigger: { trigger: el, start: 'top 85%' }
     });
   }
 
@@ -104,26 +132,24 @@ export class Reveal {
   // content stays in the accessibility tree and stays keyboard-focusable,
   // so screen-reader heading navigation and Tab don't skip whole sections
   // below the fold.
-  initBlocks() {
-    document.querySelectorAll('[data-reveal]').forEach((el) => {
-      gsap.from(el, {
-        y: 40,
-        opacity: 0,
-        duration: 1,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: el, start: 'top 88%' }
-      });
+  block(el) {
+    gsap.from(el, {
+      y: 40,
+      opacity: 0,
+      duration: 1,
+      ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 88%' }
     });
+  }
 
-    // Project rows get a slightly larger travel + self-stagger feel
-    document.querySelectorAll('.project').forEach((el) => {
-      gsap.from(el, {
-        y: 70,
-        opacity: 0,
-        duration: 1.1,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: el, start: 'top 90%' }
-      });
+  // Project rows get a slightly larger travel
+  projectRow(el) {
+    gsap.from(el, {
+      y: 70,
+      opacity: 0,
+      duration: 1.1,
+      ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 90%' }
     });
   }
 

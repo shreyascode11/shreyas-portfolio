@@ -35,5 +35,12 @@ export class Menu {
     if (this.smoothScroll) {
       open ? this.smoothScroll.stop() : this.smoothScroll.start();
     }
+    // Focus follows the menu: into it on open (after the slide starts so
+    // visibility has flipped), back to the burger when it closes
+    if (open) {
+      setTimeout(() => this.el.querySelector('.menu__link')?.focus({ preventScroll: true }), 50);
+    } else if (this.el.contains(document.activeElement)) {
+      this.button.focus({ preventScroll: true });
+    }
   }
 }

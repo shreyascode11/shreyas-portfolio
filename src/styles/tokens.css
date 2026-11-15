@@ -57,7 +57,7 @@
 
   /* Space */
   --gutter: clamp(1.25rem, 4vw, 4.5rem);
-  --section-pad: clamp(7rem, 16vh, 13rem);
+  --section-pad: clamp(5rem, 13vh, 10.5rem);
 
   /* Shape */
   --radius: 16px;           /* card / thumbnail rounding */

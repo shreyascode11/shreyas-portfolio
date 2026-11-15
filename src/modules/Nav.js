@@ -24,14 +24,21 @@ export class Nav {
       });
     });
 
-    document.querySelector('[data-back-to-top]')?.addEventListener('click', () => {
+    document.querySelectorAll('[data-back-to-top]').forEach((btn) => btn.addEventListener('click', () => {
       // Back-to-top is a glide, not a wipe — it reads better for "return"
       if (this.smoothScroll) {
         this.smoothScroll.scrollTo(0, { duration: 1.6 });
       } else {
         window.scrollTo({ top: 0 });
       }
-    });
+      // Keyboard users land on the logo, not lost at the bottom
+      document.querySelector('.nav__logo')?.focus({ preventScroll: true });
+    }));
+
+    // Floating back-to-top: shows past ~1.5 screens, hides again near
+    // the footer (which has its own) so they never double up
+    this.totop = document.querySelector('[data-totop]');
+    this.footer = document.querySelector('.footer');
 
     // Scrollspy targets: header links only, mapped to their sections
     this.spy = [...this.el.querySelectorAll('.nav__link')]
@@ -53,6 +60,13 @@ export class Nav {
 
   onScroll() {
     this.el.classList.toggle('is-scrolled', window.scrollY > 40);
+
+    if (this.totop) {
+      const nearFooter = this.footer && this.footer.getBoundingClientRect().top < window.innerHeight;
+      const show = window.scrollY > window.innerHeight * 1.5 && !nearFooter;
+      this.totop.classList.toggle('is-visible', show);
+      this.totop.tabIndex = show ? 0 : -1;
+    }
 
     // Scrollspy: the last section whose top passed the upper third of
     // the viewport is "current"

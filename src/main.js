@@ -30,6 +30,17 @@ import { toast, copyText } from './modules/Toast.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Web fonts are off for the very first frame (see index.html); switch
+// them on now and load the faces we use explicitly, so "ready" means
+// ready rather than "nothing pending yet".
+document.documentElement.classList.add('fonts-on');
+const fontsReady = document.fonts
+  ? Promise.all(
+      ['400 1em "Space Grotesk"', '700 1em "Space Grotesk"', '400 1em "Space Mono"', '700 1em "Space Mono"']
+        .map((f) => document.fonts.load(f))
+    ).catch(() => {})
+  : Promise.resolve();
+
 // ---------------------------------------------------------------------
 // Capability flags — decide how heavy the experience gets.
 // ---------------------------------------------------------------------
@@ -53,7 +64,7 @@ const useDistortion = useHeroGL && !isTouch;
 
 // Longest the preloader will hold for WebGL, measured from boot. The
 // preloader's own intro runs about 1.2s.
-const GL_WAIT_MS = 1600;
+const GL_WAIT_MS = 700;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -71,7 +82,7 @@ function afterFirstPaint() {
 
 // Resolves when `el` comes within `rootMargin` of the viewport, or a few
 // seconds after first paint once the browser is idle, whichever is first.
-function whenNear(el, rootMargin) {
+function whenNear(el, rootMargin, { idleFallback = true } = {}) {
   return new Promise((resolve) => {
     const io = new IntersectionObserver(
       (entries) => entries.some((e) => e.isIntersecting) && done(),
@@ -84,7 +95,7 @@ function whenNear(el, rootMargin) {
     io.observe(el);
     const idle = (cb) =>
       'requestIdleCallback' in window ? requestIdleCallback(cb) : setTimeout(cb, 0);
-    afterFirstPaint().then(() => wait(3000)).then(() => idle(done));
+    if (idleFallback) afterFirstPaint().then(() => wait(3000)).then(() => idle(done));
   });
 }
 
@@ -110,6 +121,27 @@ function thumbnail(p) {
     </picture>`;
 }
 
+const slugOf = (p) =>
+  p.slug || p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const KIND_LABELS = { ai: 'AI', web: 'Web', '3d': '3D' };
+
+/** Before → after strip, e.g. Lighthouse scores vs. the site it replaced. */
+function metricsStrip(metrics) {
+  if (!metrics?.length) return '';
+  return `
+    <dl class="metrics" aria-label="Before and after">
+      ${metrics.map((m) => `
+        <div class="metric">
+          <dt class="metric__label mono">${m.label}</dt>
+          <dd class="metric__vals">
+            <span class="metric__after">${m.after}</span>
+            <span class="metric__before mono">was <s>${m.before}</s></span>
+          </dd>
+        </div>`).join('')}
+    </dl>`;
+}
+
 function renderProjects() {
   const list = document.querySelector('[data-work-list]');
 
@@ -119,11 +151,13 @@ function renderProjects() {
       const tags = p.tech
         .map((t) => `<span class="project__tag">${t}</span>`)
         .join('');
+      const ext = (href, label) =>
+        `<a class="mono" href="${href}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
       const links = [
-        p.links.live &&
-          `<a class="mono" href="${p.links.live}" target="_blank" rel="noopener noreferrer">Live ↗</a>`,
-        p.links.github &&
-          `<a class="mono" href="${p.links.github}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>`
+        p.links.live && ext(p.links.live, 'Live'),
+        p.links.github && ext(p.links.github, 'GitHub'),
+        ...(p.links.extra ?? []).map((l) => ext(l.url, l.label)),
+        `<button class="mono project__share" type="button" data-share aria-label="Copy link to ${p.name}">Copy link #</button>`
       ]
         .filter(Boolean)
         .join('');
@@ -150,7 +184,7 @@ function renderProjects() {
           : '';
 
       return `
-        <li class="project">
+        <li class="project" id="project-${slugOf(p)}" data-kind="${(p.kind ?? []).join(' ')}">
           <div class="project__link">
             <span class="project__index mono">${index}</span>
             <div class="project__body">
@@ -161,6 +195,7 @@ function renderProjects() {
                 <span class="project__year">${p.year}</span>
                 <span>${p.role}</span>
               </p>
+              ${metricsStrip(p.metrics)}
               <div class="project__tags">${tags}</div>
               <div class="project__links">${links}</div>
               ${details}
@@ -187,13 +222,103 @@ function renderProjects() {
   // ScrollTrigger re-measures after the height settles)
   list.addEventListener('click', (e) => {
     const toggle = e.target.closest('.project__more-toggle');
-    if (!toggle) return;
-    const more = toggle.closest('.project__more');
-    const open = more.classList.toggle('is-open');
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.textContent = open ? 'Less −' : 'More +';
-    setTimeout(() => ScrollTrigger.refresh(), 650);
+    if (toggle) setProjectOpen(toggle.closest('.project'));
+
+    const share = e.target.closest('[data-share]');
+    if (share) {
+      const url = new URL(location.href);
+      url.search = '';
+      url.hash = share.closest('.project').id;
+      copyText(url.href).then((ok) => toast(ok ? 'Project link copied' : url.href));
+    }
   });
+
+  renderWorkFilters(list);
+}
+
+/** Open (or toggle) a project's "why & what" panel. */
+function setProjectOpen(row, open) {
+  const more = row?.querySelector('.project__more');
+  if (!more) return;
+  const isOpen = more.classList.toggle('is-open', open);
+  const toggle = more.querySelector('.project__more-toggle');
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.textContent = isOpen ? 'Less −' : 'More +';
+  setTimeout(() => ScrollTrigger.refresh(), 650);
+}
+
+/**
+ * Filter pills above the Work list (All · AI · Web · 3D), built from each
+ * project's `kind`. Hidden rows use the `hidden` attribute, so they drop
+ * out of layout, the a11y tree and the WebGL distortion (zero rect).
+ * The choice persists in the URL as ?work=ai so it can be shared.
+ */
+function renderWorkFilters(list) {
+  const bar = document.querySelector('[data-work-filters]');
+  if (!bar) return;
+  const rows = [...list.querySelectorAll('.project')];
+  const kinds = Object.keys(KIND_LABELS).filter((k) => projects.some((p) => p.kind?.includes(k)));
+  const count = (k) => (k === 'all' ? projects.length : projects.filter((p) => p.kind?.includes(k)).length);
+
+  bar.innerHTML = ['all', ...kinds]
+    .map((k) => `
+      <button class="filter mono" type="button" data-filter="${k}" aria-pressed="false">
+        ${k === 'all' ? 'All' : KIND_LABELS[k]}<sup class="filter__count">${String(count(k)).padStart(2, '0')}</sup>
+      </button>`)
+    .join('');
+
+  const status = document.querySelector('[data-work-status]');
+  const apply = (kind, { animate = true } = {}) => {
+    if (kind !== 'all' && !kinds.includes(kind)) kind = 'all';
+    bar.querySelectorAll('.filter').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.filter === kind))
+    );
+    const shown = [];
+    rows.forEach((row) => {
+      const match = kind === 'all' || row.dataset.kind.split(' ').includes(kind);
+      row.hidden = !match;
+      if (match) shown.push(row);
+    });
+    if (status) {
+      status.textContent = kind === 'all'
+        ? `${shown.length} projects`
+        : `${shown.length} of ${rows.length} · ${KIND_LABELS[kind]}`;
+    }
+    // Renumber visible rows so the index column stays 01, 02, 03…
+    shown.forEach((row, i) => {
+      row.querySelector('.project__index').textContent = String(i + 1).padStart(2, '0');
+    });
+    // Let the 3D orbit dim cards outside the filter
+    window.dispatchEvent(new CustomEvent('workfilter', { detail: { kind } }));
+    if (animate && !reducedMotion) {
+      gsap.fromTo(shown, { opacity: 0, y: 24 }, {
+        opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.06, overwrite: true
+      });
+    }
+    ScrollTrigger.refresh();
+
+    const url = new URL(location.href);
+    if (kind === 'all') url.searchParams.delete('work');
+    else url.searchParams.set('work', kind);
+    history.replaceState(null, '', url);
+  };
+
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-filter]');
+    if (btn && btn.getAttribute('aria-pressed') !== 'true') apply(btn.dataset.filter);
+  });
+  apply(new URLSearchParams(location.search).get('work') || 'all', { animate: false });
+}
+
+/**
+ * Shareable project links: #project-<slug> scrolls to that row (after
+ * the preloader) and opens its details. Clears any filter hiding it.
+ */
+function revealProject(row, goTo) {
+  if (!row) return;
+  if (row.hidden) document.querySelector('[data-filter="all"]')?.click();
+  goTo(row);
+  setTimeout(() => setProjectOpen(row, true), 900);
 }
 
 // ---------------------------------------------------------------------
@@ -355,7 +480,7 @@ function createMarqueeVelocity(smoothScroll) {
 }
 
 /** Everything the ⌘K palette can do. */
-function buildCommands({ goTo, theme, smoothScroll }) {
+function buildCommands({ goTo, theme, smoothScroll, companion }) {
   const section = (id) => () => goTo(document.querySelector(id));
   const open = (url) => () => window.open(url, '_blank', 'noopener');
   const commands = [
@@ -396,13 +521,35 @@ function buildCommands({ goTo, theme, smoothScroll }) {
       hint: 'theme', keywords: ['theme', 'dark', 'light', 'mode'],
       run: () => theme.toggle()
     },
-    ...projects.map((p) => ({
-      group: 'Projects',
-      label: p.name,
-      hint: p.links.live ? 'live ↗' : 'github ↗',
-      keywords: [...p.tech, p.award ? 'award' : ''],
-      run: open(p.links.live || p.links.github)
-    })),
+    // Projects jump to their row (and open its details) — the live link
+    // is one click away there; the visitor stays on the page
+    ...projects.flatMap((p) => [
+      {
+        group: 'Projects',
+        label: p.name,
+        hint: 'details',
+        keywords: [...p.tech, ...(p.kind ?? []), slugOf(p), p.award ? 'award' : ''],
+        run: () => revealProject(document.getElementById(`project-${slugOf(p)}`), goTo)
+      },
+      ...(p.links.live ? [{
+        group: 'Projects', label: `Open ${p.name} live`, hint: '↗',
+        keywords: [slugOf(p), 'demo', 'site'], run: open(p.links.live)
+      }] : []),
+      ...(p.links.extra ?? []).map((l) => ({
+        group: 'Projects', label: l.label, hint: '↗',
+        keywords: [p.name, slugOf(p)], run: open(l.url)
+      }))
+    ]),
+    {
+      group: 'Actions',
+      label: () => (companion.current?.enabled === false ? 'Bring Pip back' : 'Hide Pip, the doodle'),
+      hint: 'companion', keywords: ['pip', 'doodle', 'companion', 'buddy', 'mascot'],
+      run: () => companion.current?.toggle()
+    },
+    {
+      group: 'Actions', label: 'Copy link to this page', hint: 'share', keywords: ['url', 'share', 'link'],
+      run: async () => toast((await copyText(location.href)) ? 'Link copied' : location.href)
+    },
     { group: 'Elsewhere', label: 'GitHub', hint: '↗', keywords: ['code', 'repos'], run: open('https://github.com/shreyascode11') },
     { group: 'Elsewhere', label: 'LinkedIn', hint: '↗', keywords: ['profile', 'connect'], run: open('https://www.linkedin.com/in/shreyas1102/') },
     { group: 'Elsewhere', label: 'Instagram', hint: '↗', keywords: ['social'], run: open('https://www.instagram.com/_shreyassrivas_/') },
@@ -418,6 +565,7 @@ function signConsole() {
       '%cS.%c\n\nNice to see a fellow dev in here.\n' +
         'Hand-written Three.js + GLSL, no frameworks — the code is at\n' +
         'https://github.com/shreyascode11/shreyas-portfolio\n\n' +
+        'Every project has its own link, e.g. /#project-srm-redesign\n\n' +
         'Say hi: shreoriginal@gmail.com',
       'font: 700 64px "Space Grotesk", sans-serif; color: #ff4b00;',
       'font: 12px monospace; color: #8a8a82;'
@@ -760,6 +908,8 @@ async function boot() {
 
   let hero = null;
   let distortion = null;
+  let orbit = null;
+  const companion = { current: null };
   let curtainUp = false; // preloader has exited
 
   // Day/night toggle — applied before GL init so textures pick the
@@ -794,7 +944,7 @@ async function boot() {
   // GL_WAIT_MS after boot. On a typical connection the blob still rises
   // with the curtain; a slow three.js download never holds the page back.
   const readyPromise = Promise.all([
-    document.fonts?.ready ?? Promise.resolve(),
+    fontsReady,
     Promise.race([glReady, wait(GL_WAIT_MS)])
   ]);
 
@@ -802,10 +952,16 @@ async function boot() {
   // in as the curtain lifts (their triggers are already in view).
   const preloader = new Preloader({
     readyPromise,
+    fontsReady,
     reducedMotion,
     onExit: () => {
       curtainUp = true;
       hero?.intro();
+      // Pip arrives once the reveal has settled and the browser is idle
+      const whenIdle = (cb) => ('requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 1500));
+      setTimeout(() => whenIdle(() => setupCompanion()
+        .then((c) => (companion.current = c))
+        .catch((err) => console.error('Companion failed:', err))), 1200);
       if (!reducedMotion) {
         new Reveal();
         initStats();
@@ -831,11 +987,13 @@ async function boot() {
 
   // ⌘K palette — pauses page scroll while open
   new CommandPalette({
-    commands: buildCommands({ goTo, theme, smoothScroll }),
+    commands: buildCommands({ goTo, theme, smoothScroll, companion }),
     onOpen: () => smoothScroll?.stop(),
     onClose: () => smoothScroll?.start()
   });
   initPrefillCTAs(goTo);
+  initProjectCountStat();
+  setupOrbit(goTo, (o) => (orbit = o));
   initProgress();
   initWordmark();
 
@@ -851,7 +1009,7 @@ async function boot() {
 
   // Only render GL scenes while their sections are (nearly) on screen —
   // no reason to burn GPU at the footer. Marquee pauses offscreen too.
-  const visible = { hero: true, work: true, marquee: true };
+  const visible = { hero: true, work: true, marquee: true, orbit: false };
   const watch = (selector, onChange) => {
     const el = document.querySelector(selector);
     if (!el) return;
@@ -862,6 +1020,7 @@ async function boot() {
   };
   watch('#hero', (v) => (visible.hero = v));
   watch('#work', (v) => (visible.work = v));
+  watch('[data-orbit-stage]', (v) => (visible.orbit = v));
   watch('.marquee', (v) => {
     visible.marquee = v;
     document.querySelector('.marquee__track')?.classList.toggle('is-paused', !v);
@@ -877,12 +1036,15 @@ async function boot() {
     }
     if (visible.marquee) marqueeVelocity?.();
     if (visible.work) distortion?.update(time);
+    if (visible.orbit) orbit?.update(time);
+    companion.current?.update(time);
     cursor?.update();
   });
 
   window.addEventListener('resize', () => {
     hero?.resize();
     distortion?.resize();
+    orbit?.resize();
     ScrollTrigger.refresh();
   });
 
@@ -894,6 +1056,137 @@ async function boot() {
       clearProps: 'all'
     });
   }
+
+  // Deep link to a project (#project-<slug>): the browser's own jump
+  // happened under the preloader, so glide there now and open it
+  const deepLink = location.hash.startsWith('#project-') && document.getElementById(location.hash.slice(1));
+  if (deepLink) revealProject(deepLink, goTo);
+}
+
+// ---------------------------------------------------------------------
+// 3D work orbit. Space is reserved at boot (no layout shift); three.js
+// is already loaded for the hero, so only the small module + textures
+// are fetched once the Work section is near. The HUD caption is filled
+// from data straight away.
+// ---------------------------------------------------------------------
+function setupOrbit(goTo, onReady) {
+  const root = document.querySelector('[data-orbit]');
+  if (!root || !useHeroGL) return;
+  root.hidden = false;
+
+  const $ = (s) => root.querySelector(s);
+  const caption = $('.orbit__caption');
+  const open = $('[data-orbit-open]');
+  let current = -1;
+  let orbit = null;
+
+  const setCaption = (i) => {
+    if (i === current) return;
+    current = i;
+    const p = projects[i];
+    caption.classList.add('is-swapping');
+    $('[data-orbit-count]').textContent =
+      `${String(i + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
+    open.href = `#project-${slugOf(p)}`;
+    open.setAttribute('aria-label', `View project: ${p.name}`);
+    setTimeout(() => {
+      $('[data-orbit-title]').textContent = p.name;
+      $('[data-orbit-meta]').textContent = [p.year, ...(p.kind ?? []).map((k) => KIND_LABELS[k]), p.award ? '★ Award' : '']
+        .filter(Boolean).join(' · ');
+      caption.classList.remove('is-swapping');
+    }, $('[data-orbit-title]').textContent ? 180 : 0); // fade only when swapping
+  };
+  setCaption(0);
+  if (isTouch) $('.orbit__hint').textContent = 'Swipe to spin · tap the front screen';
+
+  const openProject = (i) => revealProject(document.getElementById(`project-${slugOf(projects[i])}`), goTo);
+  open.addEventListener('click', (e) => {
+    e.preventDefault();
+    openProject(current);
+  });
+  $('[data-orbit-prev]').addEventListener('click', () => orbit?.next(-1));
+  $('[data-orbit-next]').addEventListener('click', () => orbit?.next(1));
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') orbit?.next(-1);
+    if (e.key === 'ArrowRight') orbit?.next(1);
+  });
+
+  // No idle fallback: a WebGL context + textures cost real main-thread
+  // time, so only pay it when the visitor actually heads for the work
+  whenNear(root, '60% 0px', { idleFallback: false })
+    .then(() => import('./gl/WorkOrbit.js'))
+    .then(({ WorkOrbit }) => {
+      orbit = new WorkOrbit($('[data-orbit-stage]'), projects, {
+        onChange: setCaption,
+        onOpen: openProject
+      }, isTouch ? 'low' : 'high');
+      orbit.setFilter(document.querySelector('.filter[aria-pressed="true"]')?.dataset.filter || 'all');
+      window.addEventListener('workfilter', (e) => orbit.setFilter(e.detail.kind));
+      window.addEventListener('themechange', () => orbit.setTheme());
+      onReady(orbit);
+    })
+    .catch((err) => {
+      console.error('Work orbit failed, hiding it:', err);
+      root.hidden = true;
+      ScrollTrigger.refresh();
+    });
+}
+
+// ---------------------------------------------------------------------
+// Pip, the doodle companion. Loaded after the preloader; comments once
+// on each section / project as it scrolls into the middle of the view.
+// ---------------------------------------------------------------------
+async function setupCompanion() {
+  const { Companion } = await import('./modules/Companion.js');
+  const at = (sel) => document.querySelector(sel);
+  // A few gentle remarks; Companion rations them (max 3, well apart)
+  const spots = [
+    [at('[data-orbit]:not([hidden])') ?? at('.work__bar'), isTouch ? 'Psst — swipe the ring. Go on.' : 'Psst — drag the ring. Go on.'],
+    [at('#project-srm-redesign'), 'This one has a whole campus you can walk around!'],
+    [at('#project-aegis'), '1st place out of 806. No big deal.'],
+    [at('#journey'), 'Member to Web Dev Lead in four months!'],
+    [at('#contact'), 'Say hi! He replies, I’ve seen it.']
+  ]
+    .filter(([el]) => el)
+    .map(([el, text]) => ({ el, text }));
+
+  const menuToggle = document.querySelector('[data-pip-toggle]');
+  const syncMenu = (on) => {
+    if (!menuToggle) return;
+    menuToggle.hidden = false;
+    menuToggle.textContent = on ? 'Hide Pip, the doodle' : 'Bring Pip back';
+  };
+
+  const pip = new Companion({
+    isTouch,
+    reducedMotion,
+    spots,
+    onToggle: (on) => {
+      syncMenu(on);
+      toast(on ? 'Pip is back' : `Pip is napping — ${isTouch ? 'the menu' : '⌘K'} brings Pip back`);
+    },
+    greeting: 'Hi! I’m Pip. I’ll tag along.',
+    pokeLines: [
+      'Hi! I’m Pip, a doodle.',
+      isTouch ? 'The menu has his CV, by the way.' : 'Press ⌘K — it knows every shortcut.',
+      'Try the ☀ button. I look good in both.',
+      'The blob up top is pure shader math.',
+      'Boop.',
+      'I was drawn in one stroke. Mostly.',
+      'Every project has its own link. Fancy.'
+    ]
+  });
+  syncMenu(pip.enabled);
+  menuToggle?.addEventListener('click', () => pip.toggle());
+  return pip;
+}
+
+/** "Projects shipped" stat follows the data, so it never goes stale. */
+function initProjectCountStat() {
+  const el = document.querySelector('[data-project-count]');
+  if (!el) return;
+  el.dataset.count = String(projects.length);
+  if (reducedMotion) el.textContent = String(projects.length).padStart(2, '0');
 }
 
 /**
