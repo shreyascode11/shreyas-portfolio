@@ -58,7 +58,9 @@ function paintFirst() {
         // Source comments are for humans; the shipped page is smaller
         // without them (keeps the whole document in the first round trip)
         .replace(/<!--[\s\S]*?-->/g, '')
-        .replace(/\n\s*\n+/g, '\n');
+        // …and without source indentation (no <pre>/<textarea> content
+        // on this page, so leading whitespace is never significant)
+        .replace(/\n\s+/g, '\n');
     }
   };
 }

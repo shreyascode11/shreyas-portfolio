@@ -26,6 +26,8 @@
 // Purely decorative (aria-hidden). `update(time)` runs on the shared
 // gsap.ticker.
 // =====================================================================
+import '../styles/companion.css';
+
 const SIZE = 72;
 const KEY_ENABLED = 'companion';
 const KEY_MET = 'companion-met';
