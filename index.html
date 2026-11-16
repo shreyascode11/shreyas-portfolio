@@ -264,6 +264,10 @@
           <h2 class="section__index mono">01 — About</h2>
           <span class="section__rule"></span>
         </header>
+        <div class="about__layout">
+        <!-- Holographic AI (src/gl/Hologram.js): fills the empty left column
+             on wide screens; its eyes follow the cursor. Decorative. -->
+        <div class="holo" data-holo aria-hidden="true"></div>
         <div class="about__grid">
           <p class="about__bio" data-split-lines>
             I'm Shreyas — a full-stack AI developer focused on bringing
@@ -284,6 +288,7 @@
             <li><span class="about__focus-label mono">02 · Web Development</span><span class="about__focus-desc">React · FastAPI · Three.js / WebGL</span></li>
             <li><span class="about__focus-label mono">03 · Cloud &amp; Deployment</span><span class="about__focus-desc">AWS · Vercel · Render · PostgreSQL</span></li>
           </ul>
+        </div>
         </div>
         <!-- Numbers count up on scroll (main.js initStats); the HTML holds
              the final values so no-JS / reduced-motion still reads right -->
@@ -455,7 +460,7 @@
           A website, an AI agent, or something in between — if it's ambitious,
           I want to hear about it. One email is all it takes.
         </p>
-        <!-- Contact form → n8n webhook (see initContactForm in main.js) -->
+        <!-- Contact form → Google Apps Script web app (see initContactForm in main.js, contact-backend/) -->
         <form class="cform" data-contact-form data-reveal novalidate>
           <div class="cform__grid">
             <label class="cform__field">
@@ -479,7 +484,7 @@
           </div>
           <!-- Shown only if the form backend is unreachable: opens the
                visitor's mail app with everything they typed pre-filled -->
-          <a class="btn cform__fallback" data-form-fallback href="mailto:shreoriginal@gmail.com" hidden>Send it by email instead ↗</a>
+          <div class="cform__fallback" data-form-fallback hidden></div>
           <p class="cform__alt mono">Prefer email? <a href="mailto:shreoriginal@gmail.com?subject=Let%27s%20build%20something" data-hover>shreoriginal@gmail.com ↗</a></p>
         </form>
 

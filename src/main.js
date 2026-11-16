@@ -511,7 +511,6 @@ function buildCommands({ goTo, theme, smoothScroll, companion }) {
     {
       group: 'Actions', label: 'Send a message', hint: 'form', keywords: ['contact', 'hire', 'email'],
       run: () => {
-        wakeBackend();
         goTo(document.querySelector('[data-contact-form]'));
         setTimeout(() => document.querySelector('[data-contact-form] input[name="name"]')?.focus({ preventScroll: true }), 1300);
       }
@@ -588,60 +587,67 @@ function signConsole() {
 }
 
 // ---------------------------------------------------------------------
-// Contact form → n8n webhook, self-hosted on a free Render instance.
+// Contact form → a Google Apps Script web app (free, nothing to host or
+// keep awake). The script — contact-backend/Code.gs — logs each message
+// to a Google Sheet, emails it to me (reply-to = the sender) and sends
+// the sender a thank-you. Set CONTACT_ENDPOINT to the deployment's
+// /exec URL (see contact-backend/README.md); until then the form offers
+// the Gmail / email-app / copy options directly.
 //
-// Free Render boxes sleep after ~15 min idle and take 30-60s to boot.
-// While booting, Render's edge rejects requests instantly (502/503/429,
-// without CORS headers, so fetch just throws). The form is built to
-// ride that out and never lose a message:
-//   1. Pre-wake: ping /healthz a few seconds after the page loads, again
-//      as the contact section approaches and when a field is focused —
-//      visitors read for well over a minute, so the box is usually warm.
-//   2. Retry through the boot window: attempts that fail *fast* were
-//      rejected before the workflow ran, so they're retried with growing
-//      gaps (~60s in total) and can't send a duplicate. An attempt that
-//      fails slowly might have been processed, so it's never retried.
-//   3. Fallback: after 12s a "send by email" button appears, pre-filled
-//      with everything they typed; on final failure it becomes the main
-//      action. The form is never cleared unless the send succeeded.
+// The body goes as text/plain, a "simple" CORS request, so there's no
+// preflight (Apps Script can't answer one); its redirect to
+// script.googleusercontent.com carries the JSON reply back.
 // ---------------------------------------------------------------------
-const N8N_BASE = 'https://shreyas-n8n.onrender.com';
-const N8N_WEBHOOK_URL = `${N8N_BASE}/webhook/portfolio-contact`;
+const CONTACT_ENDPOINT = '';
 const CONTACT_EMAIL = 'shreoriginal@gmail.com';
-// Gaps between retries of fast-failing sends — ~60s total, enough to
-// cover a Render cold boot
-const RETRY_DELAYS = [3000, 5000, 8000, 12000, 15000, 18000];
 
-let lastWake = 0;
-/** Fire-and-forget ping to wake the Render instance (max every 5 min). */
-function wakeBackend() {
-  if (Date.now() - lastWake < 5 * 60_000) return;
-  lastWake = Date.now();
-  fetch(`${N8N_BASE}/healthz`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
-}
-
-/** One POST with its own timeout; rejects on network error, timeout or non-2xx. */
+/** One POST with its own timeout; rejects unless the script says ok. */
 async function postContact(data, timeoutMs) {
+  if (!CONTACT_ENDPOINT) {
+    throw Object.assign(new Error('Contact endpoint not configured'), { name: 'NotConfigured' });
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(N8N_WEBHOOK_URL, {
+    const res = await fetch(CONTACT_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...data, page: location.origin }),
       signal: controller.signal
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const reply = await res.json().catch(() => ({}));
+    if (!res.ok || reply.ok !== true) throw new Error(reply.error || `HTTP ${res.status}`);
   } finally {
     clearTimeout(timer);
   }
 }
 
-function mailtoFor({ name = '', email = '', message = '' }) {
-  const subject = `Portfolio message${name ? ` from ${name}` : ''}`;
-  const body = `${message}\n\n— ${name}${email ? ` (${email})` : ''}`;
+function draftFor({ name = '', email = '', message = '' }) {
+  return {
+    subject: `Portfolio message${name ? ` from ${name}` : ''}`,
+    body: `${message}\n\n— ${name}${email ? ` (${email})` : ''}`
+  };
+}
+function mailtoFor(data) {
+  const { subject, body } = draftFor(data);
   return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
+// Works for anyone without a desktop mail app set up (a bare mailto:
+// link silently does nothing for them)
+function gmailFor(data) {
+  const { subject, body } = draftFor(data);
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(CONTACT_EMAIL)}` +
+    `&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+// What the visitor typed survives a reload or a failed send (cleared
+// once a message goes through). Per-browser only.
+const DRAFT_KEY = 'contact-draft';
+const draftStore = {
+  get() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } },
+  set(v) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); } catch { /* private mode */ } },
+  clear() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* private mode */ } }
+};
 
 function initContactForm() {
   const form = document.querySelector('[data-contact-form]');
@@ -653,23 +659,38 @@ function initContactForm() {
     status.className = `cform__status mono${kind ? ` is-${kind}` : ''}`;
     status.textContent = text;
   };
+  // Built here rather than shipped in the HTML: it only appears when a
+  // send is slow or fails, so it needn't cost first-load bytes
+  fallback.innerHTML = `
+    <p class="cform__fallback-note mono">Send it another way — everything you typed comes along:</p>
+    <div class="cform__fallback-actions">
+      <a class="btn" data-fallback-gmail href="https://mail.google.com/" target="_blank" rel="noopener noreferrer">Open in Gmail ↗</a>
+      <a class="btn" data-fallback-mailto href="mailto:${CONTACT_EMAIL}">Email app ↗</a>
+      <button class="btn" type="button" data-fallback-copy>Copy message</button>
+    </div>`;
+  const gmail = fallback.querySelector('[data-fallback-gmail]');
+  let lastData = null;
   const showFallback = (data, primary = false) => {
-    fallback.href = mailtoFor(data);
+    lastData = data;
+    gmail.href = gmailFor(data);
+    fallback.querySelector('[data-fallback-mailto]').href = mailtoFor(data);
     fallback.hidden = false;
-    fallback.classList.toggle('btn--fill', primary);
+    gmail.classList.toggle('btn--fill', primary);
   };
+  fallback.querySelector('[data-fallback-copy]').addEventListener('click', async () => {
+    if (!lastData) return;
+    const { subject, body } = draftFor(lastData);
+    const ok = await copyText(`To: ${CONTACT_EMAIL}\nSubject: ${subject}\n\n${body}`);
+    toast(ok ? 'Message copied — paste it into any email' : CONTACT_EMAIL);
+  });
 
-  // Pre-wake shortly after load (visitors read long before reaching the
-  // form), again as they head toward it, and when they start typing
-  setTimeout(wakeBackend, 3000);
-  const section = document.querySelector('#contact');
-  if (section) {
-    new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) wakeBackend(); },
-      { rootMargin: '100% 0px' } // one viewport ahead of arrival
-    ).observe(section);
-  }
-  form.addEventListener('focusin', wakeBackend);
+  // Restore an unsent draft; keep saving as they type
+  const fields = ['name', 'email', 'message'].map((n) => form.elements[n]).filter(Boolean);
+  const saved = draftStore.get();
+  if (saved) fields.forEach((f) => { if (!f.value && saved[f.name]) f.value = saved[f.name]; });
+  form.addEventListener('input', () => {
+    draftStore.set(Object.fromEntries(fields.map((f) => [f.name, f.value])));
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -686,39 +707,36 @@ function initContactForm() {
     button.disabled = true;
     fallback.hidden = true;
     setStatus('Sending…');
-    const fallbackHint = setTimeout(() => showFallback(data), 12000);
+    const fallbackHint = setTimeout(() => showFallback(data), 9000);
+    const slowHint = setTimeout(() => setStatus('Still sending…'), 5000);
 
     try {
-      for (let attempt = 0; ; attempt++) {
-        const started = Date.now();
-        // A single slow attempt usually means Render is holding the
-        // request while it boots — say so rather than look stuck
-        const slowHint = setTimeout(() => setStatus('Still sending — the server is waking up…'), 8000);
-        let error = null;
-        try {
-          await postContact(data, 45000);
-        } catch (err) {
-          error = err;
-        } finally {
-          clearTimeout(slowHint); // before any retry wait, or it fires mid-sleep
-        }
-        if (!error) break;
-        const fast = error.name !== 'AbortError' && Date.now() - started < 15000;
-        if (!fast || attempt >= RETRY_DELAYS.length) throw error;
-        setStatus(`Server is waking up — retrying (${attempt + 1}/${RETRY_DELAYS.length})…`);
-        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
+      try {
+        await postContact(data, 25000);
+      } catch (err) {
+        // one quick retry for a dropped connection; never after a timeout
+        // (that request may have gone through) or with no endpoint set
+        if (err.name === 'NotConfigured' || err.name === 'AbortError') throw err;
+        await new Promise((r) => setTimeout(r, 1500));
+        await postContact(data, 25000);
       }
       setStatus('Message sent — I’ll reply soon.', 'ok');
       pipSay('sent');
       fallback.hidden = true;
       form.reset();
+      draftStore.clear();
     } catch (err) {
-      console.error('Contact form failed:', err);
-      setStatus('Couldn’t reach the server — your message is still here.', 'error');
-      pipSay('failed');
+      if (err.name === 'NotConfigured') {
+        setStatus('Pick how you’d like to send it — everything you typed comes along.', 'warn');
+      } else {
+        console.error('Contact form failed:', err);
+        setStatus('Couldn’t send just now — your message is safe. One click below sends it.', 'warn');
+        pipSay('failed');
+      }
       showFallback(data, true);
     } finally {
       clearTimeout(fallbackHint);
+      clearTimeout(slowHint);
       button.disabled = false;
     }
   });
@@ -737,7 +755,6 @@ function initPrefillCTAs(goTo) {
   document.querySelectorAll('[data-prefill]').forEach((cta) => {
     cta.addEventListener('click', (e) => {
       e.preventDefault();
-      wakeBackend();
       // Don't clobber something the visitor already wrote
       const isTemplate = !message.value.trim() || Object.values(PREFILL).includes(message.value);
       if (isTemplate) message.value = PREFILL[cta.dataset.prefill] ?? '';
@@ -925,6 +942,7 @@ async function boot() {
   let hero = null;
   let distortion = null;
   let orbit = null;
+  let holo = null;
   const companion = { current: null };
   let curtainUp = false; // preloader has exited
 
@@ -1010,6 +1028,7 @@ async function boot() {
   initPrefillCTAs(goTo);
   initProjectCountStat();
   setupOrbit(goTo, (o) => (orbit = o));
+  setupHologram((h) => (holo = h));
   initProgress();
   initWordmark();
 
@@ -1025,7 +1044,7 @@ async function boot() {
 
   // Only render GL scenes while their sections are (nearly) on screen —
   // no reason to burn GPU at the footer. Marquee pauses offscreen too.
-  const visible = { hero: true, work: true, marquee: true, orbit: false };
+  const visible = { hero: true, work: true, marquee: true, orbit: false, holo: false };
   const watch = (selector, onChange) => {
     const el = document.querySelector(selector);
     if (!el) return;
@@ -1037,6 +1056,7 @@ async function boot() {
   watch('#hero', (v) => (visible.hero = v));
   watch('#work', (v) => (visible.work = v));
   watch('[data-orbit-stage]', (v) => (visible.orbit = v));
+  watch('[data-holo]', (v) => (visible.holo = v));
   watch('.marquee', (v) => {
     visible.marquee = v;
     document.querySelector('.marquee__track')?.classList.toggle('is-paused', !v);
@@ -1053,6 +1073,7 @@ async function boot() {
     if (visible.marquee) marqueeVelocity?.();
     if (visible.work) distortion?.update(time);
     if (visible.orbit) orbit?.update(time);
+    if (visible.holo && !reducedMotion) holo?.update(time);
     companion.current?.update(time);
     cursor?.update();
   });
@@ -1149,6 +1170,34 @@ function setupOrbit(goTo, onReady) {
 }
 
 // ---------------------------------------------------------------------
+// Holographic AI in the About section's left column (wide screens
+// only — that's where the empty space is). Loads as About approaches.
+// ---------------------------------------------------------------------
+// Layout for the hologram column. Injected from here (this runs while
+// the intro still covers the page) rather than inlined in the HTML: it
+// only matters on wide screens, and the inline styles are kept small
+// enough that the whole document arrives in the first round trip.
+const HOLO_LAYOUT_CSS = `.about__layout{display:block;} .holo{display:none;} @media (min-width:1100px){.about__layout{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 62rem);gap:clamp(2rem, 4vw, 5rem);align-items:start;} .about__layout .about__grid{margin-left:0;} .holo{display:block;position:sticky;top:12vh;max-width:30rem;width:100%;margin-inline:auto;aspect-ratio:4 / 5;}}`;
+
+function setupHologram(onReady) {
+  const root = document.querySelector('[data-holo]');
+  if (!root) return;
+  document.head.insertAdjacentHTML('beforeend', `<style>${HOLO_LAYOUT_CSS}</style>`);
+  const wide = window.matchMedia('(min-width: 1100px)');
+  let started = false;
+  const start = () => {
+    if (started || !wide.matches) return;
+    started = true;
+    whenNear(root, '50% 0px', { idleFallback: false })
+      .then(() => import('./gl/Hologram.js'))
+      .then(({ Hologram }) => onReady(new Hologram(root, { isTouch, reducedMotion })))
+      .catch((err) => console.error('Hologram failed:', err));
+  };
+  start();
+  wide.addEventListener?.('change', start); // window widened later
+}
+
+// ---------------------------------------------------------------------
 // Pip, the doodle companion. Loaded after the preloader; comments once
 // on each section / project as it scrolls into the middle of the view.
 // ---------------------------------------------------------------------
@@ -1229,7 +1278,7 @@ async function setupCompanion() {
     copied: ['Copied! Share it around.', 'Link’s on your clipboard ✓'],
     email: ['Email copied. Go on, say hi!'],
     sent: ['Sent! He’ll get back to you soon.', 'Message delivered ✉'],
-    failed: ['Uh oh — the server’s waking up. Try the email button?'],
+    failed: ['Hmm, that didn’t go through. The Gmail button always works!'],
     filter: { all: 'Everything, all at once.', ai: 'AI only? Good taste.', web: 'The web stuff. Classic.', '3d': '3D! My kind of thing.' },
     orbit: ['Wheee! Spin it again.', 'Round and round it goes.']
   };

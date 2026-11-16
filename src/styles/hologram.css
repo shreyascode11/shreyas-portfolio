@@ -1,0 +1,11 @@
+/* Loaded with Hologram.js — decoration only; the layout that reserves
+   the column lives in main.css so nothing shifts when this arrives. */
+/* Teal particle projection */
+.holo { --holo: #2fb3a8; --holo-hi: #d4fff8; }
+:root[data-theme='light'] .holo { --holo: #12807a; --holo-hi: #063a37; }
+/* faint navy haze behind the bust, as in the reference */
+.holo__canvas {
+  background: radial-gradient(55% 45% at 50% 42%, color-mix(in srgb, #12304a 55%, transparent), transparent 75%);
+}
+:root[data-theme='light'] .holo__canvas { background: none; }
+.holo__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
